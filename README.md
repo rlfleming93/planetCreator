@@ -98,10 +98,10 @@ and then:
   Each carries a `// planet-sync: generated from …` header and is rewritten only when its week changed; a seed without
   that header is written by hand and is never touched.
 - repaints the demo shelf's stills for the weeks whose planet link, still or look changed, each with its globe
-  (`ryan/globe/<week>.webp`: the planet alone on a transparent square, its classic poster's globe without its
-  companions, sun or space, which the galaxy lays on its week's planet), paints any globe that is missing, and keeps
-  `ryan.json` (with each week's `globe`, how large the globe stands in its classic still). `--force` repaints every
-  week. The look is HEAD's `apps/planet` plus `apps/planet-home/lib`, stamped per week in
+  (`ryan/globe/<week>.webp`: the planet alone on a transparent square, its classic poster's globe in the ink frame,
+  without its print, companions, sun or space, which the galaxy lays on its week's planet), paints any globe that is
+  missing, and keeps `ryan.json` (with each week's `globe`, how large the globe stands in its classic still).
+  `--force` repaints every week. The look is HEAD's `apps/planet` plus `apps/planet-home/lib`, stamped per week in
   `var/sync/shelf-look.json`, so a commit that changes how a planet is drawn refreshes the shelf without a `ryan.json`
   change. A week dropped from history keeps its still and globe.
 - paints the phone kit's clips (see Phone kit) when they're out of date: the week so far's at each new session, the
@@ -350,9 +350,10 @@ signature code against Svix's published example.
 
 A week is drawn as one world. `apps/planet/worlds/<id>.js` modules hook the reading (`fit`, `climate`, `baseline`,
 `shape`, `palette`, `companions`, `orbit`; see the header of `worlds/index.js`), and `world.archetype` picks one:
-`classic` (the default, pinned by `_terrain-pin.mjs` and `_sky-pin.mjs`), a named world, or `auto`, which takes the
-world whose `fit` of the week's signals (`weekStats`) is at least 0.55 and leads the next by 0.12. Inside that margin
-the one of the two built for the week (`builtFor`, today only tundra's: a week under a roof) takes it; else classic.
+`auto` (the default) takes the world whose `fit` of the week's signals (`weekStats`) is at least 0.55 and leads the
+next by 0.12. Inside that margin the one of the two built for the week (`builtFor`, today only tundra's: a week under a
+roof) takes it; else classic. `classic` or a world's id names one. The pins guard classic: both pin weeks read as
+classic under `auto`, `_terrain-pin.mjs` loads the worlds as the app does, and `_sky-pin.mjs` names classic.
 
 | world | claims | look |
 |---|---|---|
@@ -366,8 +367,9 @@ the one of the two built for the week (`builtFor`, today only tundra's: a week u
 
 `look.print` lays one final pass over the ink frame: `ink` (none), `riso` (three spot plates), `woodblock` (keyed
 flats and a bold key block), `etching` (ruled copperplate), `gouache`, `moebius`, `mosaic`, `atlas`, `nocturne`,
-`pointillist`, or `auto` (the default: each world's signature print, and the ink frame for every body and race week;
-see `prints/index.js`). `kinds.pitch` draws football as a mown, chalked pitch instead of a cairn. `companions.race`, on
+`pointillist`, or `auto` (the default: gouache for commons and riso for archipelago, and the ink frame for every other
+world, every body and race week; see `prints/index.js`). The galaxy's globes are always the ink frame (`lib/paint.js`
+paintGlobe). `kinds.pitch` draws football as a mown, chalked pitch instead of a cairn. `companions.race`, on
 by default, hangs a ring round the globe and pulls the poster back to fit it; `companions.ringStyle` picks how it is
 drawn (`saturn`, the default, a Saturn-scale ring system from `rings-saturn-shader.js`; `splits`, the ringlet-per-split
 ring; `rubble` and `orrery` from `rings-rubble.js`; `track` and `aurora` from `rings-track.js`), and
@@ -388,10 +390,11 @@ crown, with `star.look` 0, 1, 3 and 4 for a star, a painted star, an eclipse or 
 only when named, never `auto`'s pick), or `auto` (the default: the best-fitting body, else rock). The frame around it,
 all on by default: `sky.space` (a painted deep-space backdrop, `ink-space.js`), `system.sun` and `system.phenomena`
 (the week's own sun, coloured by the hour it trained, plus a binary companion, comet, asteroid belt, water moon or halo
-when the week earned one; `system.js`), and `poster.shot` (`auto`: a hero shot on race weeks, a crescent for big rocky
-weeks, a long lens for long runs, else classic; `crescent`, `horizon`, `telephoto`, `hero` and `classic` by name; from
-`shots.js`, handing over to the ordinary orbit on the first drag). The pins guard the painting under all of this, so
-they turn these dials back off (`_sky-pin.mjs` PAINTING, `_terrain-pin.mjs` world.body=rock); compare a change on a
+when the week earned one; `system.js`), and `poster.shot` (`auto`: a hero shot on race weeks, a crescent for big
+classic rocky weeks, a long lens for long runs, else classic, which every body and other world keeps; `crescent`,
+`horizon`, `telephoto`, `hero` and `classic` by name; from `shots.js`, handing over to the ordinary orbit on the first
+drag). The pins guard the painting under all of this, so they turn these dials back off (`_sky-pin.mjs` PAINTING,
+`_terrain-pin.mjs` world.body=rock); compare a change on a
 wall (below) before changing a default, then re-pin. `_sky-pin.mjs` paints the made-up race week
 (`seeds/synthetic-cold-hard.js`), and `bun apps/planet/_sky-pin.mjs --write` re-pins it into
 `apps/planet/shots/anchor/`. It refuses any other seed: tracked shots are public, so never capture `seed-week.js`, a

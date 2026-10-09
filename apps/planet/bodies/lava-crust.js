@@ -22,6 +22,8 @@
  * constant colours tempered by the week's numbers, and the vent list is a sort
  * of the week's own activities.
  */
+import { P } from '../params.js';
+import { toHue } from '../ink-space.js';
 
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
@@ -82,6 +84,22 @@ const MELT = {
   farGlaze: 0x6d5b4d,
   accent: 0xff7a1e,
 };
+
+// body.tint: the melt is as hot as the week was. A week at the furnace's door (25 °C) runs a cherry red with a
+// crimson-black sea, the hottest (31 °C and over) an orange going to gold over a burnt-umber one; MELT is the middle,
+// 28 °C. A week with no temperature, in only by its load, runs the coolest. Same keys as MELT.
+const MELT_COOL = {
+  seaShallow: 0x4e0f12, seaDeep: 0x1e080c, foam: 0xd84a3a, shelf: 0x3c0d10, cobalt: 0x2a0a0e,
+  teal: 0x661418, vermilion: 0xa01c1c, farGlaze: 0x66504f, accent: 0xe5342c,
+};
+const MELT_HOT = {
+  seaShallow: 0x7a3c12, seaDeep: 0x30180a, foam: 0xf5cc66, shelf: 0x5c2a0a, cobalt: 0x3c1d08,
+  teal: 0x904a10, vermilion: 0xd0661a, farGlaze: 0x7a6849, accent: 0xffb436,
+};
+// …and the crust is as worked as the week was: a light load leaves it a blue-black basalt, a heavy one an iron-brown
+// still warm from under it (hues at unit luma, laid at the rock's own value).
+const CRUST_COOL = [0.835, 0.992, 1.566];
+const CRUST_WARM = [1.47, 0.902, 0.588];
 
 // The ash sky: smoke over the ground rather than weather over it — a grey that
 // stays pale enough to hold the black crust's silhouette, warming into the band
@@ -182,6 +200,17 @@ export function paintCrust(pal, features) {
     pal.skyScheme.w = Math.max(pal.skyScheme.w, 1.35 + 0.9 * heat);    // the sun smeared through smoke
   }
   if (Number.isFinite(pal.skyCirrus)) pal.skyCirrus = Math.min(pal.skyCirrus, 3);
+  // body.tint: last, so the crease's melt above takes it too — the melt at the week's own heat, the crust at its load
+  const tint = clamp(Number(P['body.tint']) || 0, 0, 1);
+  if (tint > 0) {
+    const st = features?.stats || {};
+    const melt = clamp(((num(st.tempC) ?? 25) - 25) / 6, 0, 1) * 2 - 1; // −1 cherry … 1 gold
+    const end = melt < 0 ? MELT_COOL : MELT_HOT;
+    const C = pal.paper.constructor;
+    for (const name of Object.keys(MELT)) pal[name]?.lerp?.(new C(end[name]), Math.abs(melt) * tint);
+    const burn = clamp(((num(st.load) ?? 850) - 850) / 350, -1, 1); // −1 basalt … 1 iron, over the lava weeks' 500–1,200
+    for (const name of Object.keys(ROCK)) if (pal[name]) toHue(pal[name], burn < 0 ? CRUST_COOL : CRUST_WARM, 0.6 * Math.abs(burn) * tint);
+  }
   return pal;
 }
 

@@ -71,6 +71,37 @@ const clamp01 = (x) => (Number.isFinite(x) ? Math.min(1, Math.max(0, x)) : 0);
 const num = (v, fallback) => (Number.isFinite(v) ? v : fallback);
 const sstep = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
 
+// sky.month: the night is laid in the week's month. Six darks round the year — winter indigo, early spring
+// sea-green, spring violet, summer plum, early autumn umber, late autumn green-black — each a hue at unit luma, so a
+// night keeps the value the week gave it and takes only the month's colour.
+const MONTH_NIGHT = [
+  [0.604, 0.994, 2.227], [0.25, 1.2, 1.5], [1.237, 0.829, 1.998], [1.62, 0.74, 1.65], [1.386, 0.917, 0.683], [0.37, 1.171, 1.159],
+];
+// How far a night is turned to its month: most of the way, so the week's own blue is left only as an undertone.
+const MONTH_MIX = 0.8;
+
+/** The week's place on the year's wheel, as a hue out of `table`: six entries two months apart, the first at month
+ *  `first` (0 is 1 January; the sky's starts on 1 February), each held over the middle half of its span and run into
+ *  the next, read at the middle of the week. Null for a week with no date. Shared with the marble's regolith. */
+export function monthHue(table, week, first = 1) {
+  const at = Date.parse(`${week}T00:00:00Z`) + 3.5 * 86400000;
+  if (!Number.isFinite(at)) return null;
+  const d = new Date(at);
+  const x = ((d.getUTCMonth() + (d.getUTCDate() - 1) / 30.44 - first) / 2 + 6) % 6;
+  const i = Math.floor(x), t = sstep(0.25, 0.75, x - i), a = table[i], b = table[(i + 1) % 6];
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+}
+
+/** Turn colour `c` by `k` toward `hue` (rgb at unit luma) at c's own luma: the hue changes, the value does not (bar
+ *  a pale colour's channel the turn would push past 1, which is held there). */
+export function toHue(c, hue, k) {
+  const l = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+  c.r = Math.min(1, c.r + (hue[0] * l - c.r) * k);
+  c.g = Math.min(1, c.g + (hue[1] * l - c.g) * k);
+  c.b = Math.min(1, c.b + (hue[2] * l - c.b) * k);
+  return c;
+}
+
 const VERT = /* glsl */ `
 varying vec3 vDir;
 void main(){
@@ -416,18 +447,22 @@ export function createSpace(shared) {
   // week's sky stays a night sky with an ember in it instead of turning the
   // whole sheet the red-brown its own darks run to.
   const nightBias = new T.Color(0.80, 0.66, 1.12);
-  const voidDeep = cobalt.clone().multiplyScalar(0.26).lerp(dark.clone().multiplyScalar(0.38), 0.34).multiply(nightBias);
-  const voidLift = cobalt.clone().multiplyScalar(0.48).lerp(dark.clone().multiplyScalar(0.44), 0.30).multiply(nightBias).lerp(paper, 0.030);
+  // sky.month: and then the night is turned to the week's month at the value it already had (MONTH_NIGHT)
+  const monthK = MONTH_MIX * clamp01(num(Number(P['sky.month']), 0));
+  const monthNight = monthK > 0 ? monthHue(MONTH_NIGHT, features.week) : null;
+  const night = (c, k = 1) => (monthNight ? toHue(c.multiply(nightBias), monthNight, monthK * k) : c.multiply(nightBias));
+  const voidDeep = night(cobalt.clone().multiplyScalar(0.26).lerp(dark.clone().multiplyScalar(0.38), 0.34));
+  const voidLift = night(cobalt.clone().multiplyScalar(0.48).lerp(dark.clone().multiplyScalar(0.44), 0.30)).lerp(paper, 0.030);
   // the band: the wet paper's white, warmed a little and cooled a little — a
   // band laid in dead neutral grey over an indigo sheet reads as a smear and not
   // as the galaxy — the week's own light for the loaded ridge of it, and the
   // ink's blue for the dust drawn out of it
   const bandPale = paperWet.clone().lerp(litWarm, 0.20).lerp(skyWash, 0.16).multiplyScalar(0.26);
   const bandCore = paper.clone().lerp(litWarm, 0.34).multiplyScalar(0.30);
-  const bandCool = cobalt.clone().multiplyScalar(0.30).multiply(nightBias);
+  const bandCool = night(cobalt.clone().multiplyScalar(0.30));
   // the nebula: the week's own blue for its haze, the week's warm light for the
   // ember at its heart, and the mineral its sports left in the rock
-  const nebCool = skyDeep.clone().lerp(cobalt, 0.45).multiply(nightBias).multiplyScalar(0.66);
+  const nebCool = night(skyDeep.clone().lerp(cobalt, 0.45), 0.6).multiplyScalar(0.66);
   const nebWarm = litWarm.clone().lerp(bare, 0.28).multiplyScalar(0.36);
   const nebAccent = accent.clone().multiplyScalar(0.55);
   // the stars: the paper's own white for the field, and three that are allowed a

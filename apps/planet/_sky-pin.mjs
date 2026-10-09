@@ -90,18 +90,22 @@ function mad(actual, expected, include) {
   return { value: error / (pixels * 3), pixels };
 }
 
-// The pin guards the painting itself, so it turns off what round 5 laid round it by default: the race ring, the body
-// (the race week would be a star), deep space, the week's sun and phenomena, the poster shot, the print, the clock and
+// The pin guards the painting itself, so it turns off what round 5 laid round it by default: the race ring, the world
+// (auto: the world the week fits) and the body (the race week would be a star), deep space, the week's sun and
+// phenomena, the poster shot, the print, the clock and
 // the atmosphere's limb, the orbit's weather, the week's life and the drawn runner; and round 13's beauty dials (the air
 // across the lit face, the sea's glint, the giants' own light and eddies, the clouds' shadows underfoot, the star as a
 // light, the comet's form, the space's ridge, the ring's mass, the gas giant's storms, the lava's fractures, the globe's
-// turn of light, the orbit clouds' depth and the distance underfoot).
+// turn of light, the orbit clouds' depth and the distance underfoot; the sea's mineral, the ground's season and soil).
 const PAINTING = [
-  'companions.race=0', 'world.body=rock', 'sky.space=0', 'system.sun=0', 'system.phenomena=0',
+  'companions.race=0', 'world.archetype=classic', 'world.body=rock', 'sky.space=0', 'system.sun=0', 'system.phenomena=0',
   'poster.shot=classic', 'look.print=ink', 'motion.living=0', 'light.atmosphere=0', 'sky.orbitClouds=0',
   'life.amount=0', 'runner.look=0', 'light.scatter=0', 'sea.glint=0', 'body.form=0', 'giant.eddies=0',
   'sky.cloudShade=0', 'system.light=0', 'system.comet=0', 'sky.ridge=0', 'companions.ringMass=0',
   'giant.storms=0', 'lava.fractures=0', 'light.form=0', 'sky.cloudDepth=0', 'light.aerial=0',
+  'sea.mineral=0', 'ground.season=0', 'ground.soil=0',
+  // the space's month, the star's hours and the bodies' own colour
+  'sky.month=0', 'system.hourSun=0', 'body.tint=0',
 ].map((kv) => `p.${kv}`).join('&');
 
 const MONUMENT = `seed=${SEED}&view=surface&t=4&at=monument&${PAINTING}`;

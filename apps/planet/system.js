@@ -125,6 +125,26 @@ const HOUR_PIGMENT = [
   [24, '#b7cbe4'],
 ];
 
+/** system.hourSun: the same lights laid over the hours the weeks really train at — 8.5 to 22 h, half of them between
+ *  9.75 and 12.5, where the table above is one flat midday — so the dawn's orange runs through amber and gold to
+ *  the palette's white-yellow and a true midday white, and the afternoon back through gold and orange to the
+ *  evening's red and the crimson of a late session. */
+const HOUR_PIGMENT_WIDE = [
+  [0, '#b7cbe4'],
+  [5.5, '#b7cbe4'],
+  [8.5, '#e08540'],   // dawn orange: the earliest week
+  [9.75, '#e8a451'],  // amber
+  [11, '#efc77a'],    // gold: the median week
+  [12.5, '#f2e3ae'],  // the white-yellow the palette was mixed for
+  [14, '#f3edd6'],    // midday white
+  [16, '#efcf84'],    // afternoon gold
+  [17.5, '#e3954a'],  // orange
+  [19, '#c94e28'],    // evening red
+  [21, '#a33a3e'],    // crimson
+  [22.5, '#7c4f7c'],  // the last light, violet
+  [24, '#b7cbe4'],
+];
+
 /** A palette entry as a fresh colour: palettes hand out hex strings or colours. */
 function colourOf(T, value) {
   const c = new T.Color();
@@ -134,17 +154,23 @@ function colourOf(T, value) {
   return c;
 }
 
-function hourColour(T, hour) {
-  const h = ((Number(hour) || 0) % 24 + 24) % 24;
-  for (let i = 1; i < HOUR_PIGMENT.length; i++) {
-    const [ha, ca] = HOUR_PIGMENT[i - 1];
-    const [hb, cb] = HOUR_PIGMENT[i];
+function pigmentAt(T, table, h) {
+  for (let i = 1; i < table.length; i++) {
+    const [ha, ca] = table[i - 1];
+    const [hb, cb] = table[i];
     if (h <= hb) {
       const t = hb === ha ? 0 : clamp((h - ha) / (hb - ha), 0, 1);
       return colourOf(T, ca).lerp(colourOf(T, cb), t);
     }
   }
-  return colourOf(T, HOUR_PIGMENT[HOUR_PIGMENT.length - 1][1]);
+  return colourOf(T, table[table.length - 1][1]);
+}
+
+function hourColour(T, hour) {
+  const h = ((Number(hour) || 0) % 24 + 24) % 24;
+  const wide = clamp(Number(P['system.hourSun']) || 0, 0, 1);
+  const c = pigmentAt(T, HOUR_PIGMENT, h);
+  return wide > 0 ? c.lerp(pigmentAt(T, HOUR_PIGMENT_WIDE, h), wide) : c;
 }
 
 /** A stable float seed from the week's own name: two weeks are never one sky. */

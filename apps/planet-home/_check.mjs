@@ -6,6 +6,9 @@
 //   bun apps/planet-home/_check.mjs [week ...] [--metric] [--all]
 globalThis.window = globalThis;
 const { readWeek } = await import('../planet/base.js');
+const { loadWorlds } = await import('../planet/worlds/index.js');
+const { P } = await import('../planet/params.js');
+await loadWorlds(P['world.archetype']); // as the app does before it reads a week
 const { decodePlanet } = await import('../planet/share.js');
 const { reading } = await import('./lib/reading.js');
 const { kindOf } = await import('./lib/week.js');

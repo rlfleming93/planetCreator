@@ -3,10 +3,14 @@ globalThis.window = globalThis;
 globalThis.PLANET_PARAMS = { 'world.body': 'rock' };
 await import('../../var/private/planet/seed-week.js'); // the race week names towns, so it lives out of git
 
-const [{ readWeek: readCurrent }, { readWeek: readRound5 }] = await Promise.all([
+const [{ readWeek: readCurrent }, { readWeek: readRound5 }, { loadWorlds }, { P }] = await Promise.all([
   import('./base.js'),
   import('./rounds/r5/base.js'),
+  import('./worlds/index.js'),
+  import('./params.js'),
 ]);
+// the app's own order (base.js): the worlds world.archetype can pick are fetched before the week is read
+await loadWorlds(P['world.archetype']);
 
 const seed = window.SEED;
 const current = readCurrent(seed);

@@ -872,10 +872,12 @@ const AUTO_LONG_RUN_KM = 30; // ...and a week with a near-marathon long run gets
 /** The shot a week asks for. A race is the week's own hero shot: its ring, its
  *  monument, the whole system round it. A body (a giant, a star, a marble…)
  *  frames itself through its own orbit.fill, and a crescent would hide the
- *  belts and storms it is drawn for, so it keeps that framing. A big rocky week
- *  is shown at planet scale as a crescent; a long-running week gets the long
- *  lens; a small week keeps the classic poster. The horizon is named-only: on
- *  the flatter weeks its low ground read as a dark plain. */
+ *  belts and storms it is drawn for, so it keeps that framing; so does a week
+ *  drawn as a world other than classic (a crescent hid the caldera its own big,
+ *  hard weeks are drawn as). A big rocky week is shown at planet scale as a
+ *  crescent; a long-running week gets the long lens; a small week keeps the
+ *  classic poster. The horizon is named-only: on the flatter weeks its low
+ *  ground read as a dark plain. */
 function autoShot(ctx, info) {
   const features = ctx.features;
   const stats = features.stats || {};
@@ -883,7 +885,7 @@ function autoShot(ctx, info) {
   // the race week's crowned world (bodies/star.js crowned()) keeps the classic poster:
   // its crown is the race's mark, and its ring is muted
   if (features.monument || stats.race) return body === 'star' && crowned() ? null : heroShot(ctx, info);
-  if (body !== 'rock') return null;
+  if (body !== 'rock' || (features.world?.id ?? 'classic') !== 'classic') return null;
   if (weekSize(stats) >= AUTO_BIG) return crescentShot(ctx);
   if ((Number(stats.longRunKm) || 0) >= AUTO_LONG_RUN_KM) return telephotoShot(ctx);
   return null;

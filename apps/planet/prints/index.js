@@ -50,13 +50,13 @@ export const PRINT_VERT = `varying vec2 vUv; void main(){ vUv = uv; gl_Position 
 
 /** The print a world is pulled as: the hand that flatters the drawing that world
  *  makes of a week. A world is a kind of ground, and every ground has a hand it
- *  belongs to — canyon country is drawn in ligne claire, a sheet of ice is cut
- *  into a plate, pasture is opaque colour laid in patches. A world that is not
- *  named here is the ink frame (null), which is the house style and the answer
- *  for the world that is the reference the others are read against. */
+ *  belongs to — pasture is opaque colour laid in patches, a drowned globe a
+ *  spot-colour plate. A world that is not named here is the ink frame (null),
+ *  which is the house style and the answer for the world that is the reference
+ *  the others are read against. Tundra and mesa keep it too: on the shelf and a
+ *  phone the etching cut the ice sheet into a cream blob, and the ligne claire
+ *  laid mesa on a flat vermilion sky. */
 const WORLD_PRINT = Object.freeze({
-  mesa: 'moebius',
-  tundra: 'etching',
   commons: 'gouache',
   archipelago: 'riso',
 });
@@ -97,7 +97,7 @@ const BODY_PRINT = Object.freeze({
  *  Saturn ring both, so a race keeps the ink frame unless the ground it was
  *  drawn as has a hand that tells a story too. */
 const RACE_PRINT = 'ink';
-const RACE_KEEPS = Object.freeze(['moebius', 'riso']);
+const RACE_KEEPS = Object.freeze(['riso']);
 
 /** The print a week is pulled as. `auto` reads the week's own world and body out
  *  of its features — features.world.id and features.body.id, both already

@@ -166,7 +166,9 @@ export function composeWorld(world, body) {
       return group.children.length ? group : null;
     };
   } else if (body.companions) out.companions = body.companions;
-  if (body.orbit) out.orbit = { ...world.orbit, ...body.orbit };
+  // A body that redraws the ground (baseline or shape) frames itself whole: a world's relief cap is for the world's
+  // own ground, and the ice giant's deck stands over the cap, so tundra's and mesa's ran the deck off its poster
+  if (body.orbit) out.orbit = body.baseline || body.shape ? body.orbit : { ...world.orbit, ...body.orbit };
   return out;
 }
 

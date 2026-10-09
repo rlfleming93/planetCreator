@@ -267,6 +267,43 @@ const SIGNATURE_WEATHER = [
 const SIGNATURE_GROUND = new Set(['landLow', 'landMid', 'landHigh', 'veg', 'bare', 'dry', 'stone', 'dark']);
 const SIG_GROUND = 0.70, SIG_WEATHER = 0.30;
 
+// ground.season: the ground walks the year. Two months a family round the
+// calendar (indigo slate at midwinter, verdigris in spring, sage, ochre at
+// midsummer, oxide in autumn, umber going into winter), and the week's own
+// temperature pulls it along its half of the year: toward midsummer's ochre
+// when warm, toward midwinter's indigo when cold. A week with no temperature
+// reads the calendar alone. The family is laid over the week's own weather as
+// the step it stands from the race week's ground, so a hot week and a cool one
+// in the same month still differ as their weather does. It takes the ground
+// and some of the light; the shade, the sky and the sea stay the weather's.
+// Umber is a ground only, so it carries the ground's keys and its light.
+const UMBER = {
+  litWarm: 0xe2c29a, landLow: 0x9a8266, landMid: 0x84604a, landHigh: 0x66505c, veg: 0x77744a, bare: 0x6e432c,
+  dry: 0xe6dccb, stone: 0xab9a8c, dark: 0x2b1d1f,
+};
+const SEASON = ['indigo', 'verdigris', 'sage', 'ochre', 'oxide', 'umber'];
+const SEASON_FAMILY = SEASON.map((name) => (name === 'umber' ? UMBER : FAMILIES_WIDE[name]));
+const SEASON_GROUND = 0.9, SEASON_LIGHT = 0.6, SEASON_TEMP = 0.35;
+// ground.soil: the driest ground seen from orbit (pal.dry, the reserve the lit
+// face leaves) takes the soil of where the week was trained, kept pale so it
+// is still the picture's light: a salt pan under a roof, sienna on a climbing
+// week, gold sand on a hot one, lichen otherwise. The season's ground is let
+// into it too (SOIL_SEASON), so the year still reads on the reserve.
+const SOIL = { salt: 0xe6eaef, sienna: 0xe2b58c, gold: 0xe8c985, lichen: 0xc8d3ad };
+const SOIL_AMT = 0.9, SOIL_SEASON = 0.3;
+// sea.mineral: the water a mineral is laid in, keyed as ACCENTS is: strength's
+// indigo is that family's own sea, football's verdigris a jade one, a ride's
+// iron a wine-dark sea (deep plum under mauve-grey shallows), a swim's a clear
+// teal. Laid as the step it stands from the race week's sea, over the week's
+// own: as far as the share of its time spent on the other sports, and at most.
+const MINERAL_SEA = {
+  strength: FAMILIES_WIDE.indigo,
+  sport: { seaShallow: 0x7fb8a4, teal: 0x4fa08a, seaDeep: 0x1f5a4e, cobalt: 0x256a5c },
+  ride: { seaShallow: 0xa3909c, teal: 0x7a6276, seaDeep: 0x3a2438, cobalt: 0x46304a },
+  swim: { seaShallow: 0x6fb3a9, teal: 0x2e9490, seaDeep: 0x154f55, cobalt: 0x1b5f68 },
+};
+const SEA_MINERAL = 3.5, SEA_MINERAL_MAX = 0.9;
+
 // The week's place in its year (ISO-8601 week number), so a signature can walk
 // its family list with the calendar. No clock: the week's own name is the date.
 function isoWeek(text) {
@@ -300,6 +337,44 @@ const _hsl = { h: 0, s: 0, l: 0 };
 // lighter or darker by dl, the hue and its strength kept: a lighter wash of the
 // same pigment, never a greyer one
 const lift = (c, dl) => { c.getHSL(_hsl); c.setHSL(_hsl.h, _hsl.s, clamp(_hsl.l + dl, 0, 0.95)); };
+// the value a wash is read at, as the shaders read it
+const lum = (c) => 0.32 * c.r + 0.55 * c.g + 0.13 * c.b;
+// a pigment let down with water until it reads at value y: its hue kept, its strength going as it pales
+const dilute = (c, y) => C(0xffffff).lerp(c, clamp((1 - y) / Math.max(1e-3, 1 - lum(c)), 0, 1));
+// OKLab (Ottosson) on the palette's own sRGB values (colour management is off)
+const _lin = (v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+const _enc = (v) => (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
+function toLab(c, o) {
+  const r = _lin(c.r), g = _lin(c.g), b = _lin(c.b);
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  o.L = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s;
+  o.a = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
+  o.b = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
+}
+function fromLab(o, c) {
+  const l = (o.L + 0.3963377774 * o.a + 0.2158037573 * o.b) ** 3;
+  const m = (o.L - 0.1055613458 * o.a - 0.0638541728 * o.b) ** 3;
+  const s = (o.L - 0.0894841775 * o.a - 1.2914855480 * o.b) ** 3;
+  const e = (v) => _enc(clamp(v, 0, 1));
+  return c.setRGB(e(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+    e(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s), e(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s));
+}
+const _w = { L: 0, a: 0, b: 0 }, _to = { L: 0, a: 0, b: 0 }, _from = { L: 0, a: 0, b: 0 };
+// A wash moved by k of the step from one pigment to another, wherever it stood
+// (OKLab), and never past the lighter, the darker or the stronger of the wash
+// and the pigment it moves toward: a step laid on a week already that way would
+// otherwise overshoot both into a louder colour than either.
+function shiftBy(c, to, from, k) {
+  toLab(c, _w); toLab(to, _to); toLab(from, _from);
+  const cap = Math.max(Math.hypot(_w.a, _w.b), Math.hypot(_to.a, _to.b));
+  const L = clamp(_w.L + k * (_to.L - _from.L), Math.min(_w.L, _to.L), Math.max(_w.L, _to.L));
+  const a = _w.a + k * (_to.a - _from.a), b = _w.b + k * (_to.b - _from.b);
+  const s = Math.min(1, cap / Math.max(Math.hypot(a, b), 1e-6));
+  _w.L = L; _w.a = a * s; _w.b = b * s;
+  return fromLab(_w, c);
+}
 
 // Read the week (the raw activity behind every feature) and paint its palette.
 // Returns { pal, objPal, info }: objPal is the palette the week's objects are
@@ -393,6 +468,40 @@ function weekPalette(features) {
     if (sig) c.add(C(FAMILIES_WIDE[signature][key]).multiplyScalar(sig));
   }
 
+  // ---- ground.season and ground.soil: the week's place in the year and the
+  // ground it was trained on, laid over the ground its weather left
+  const stats = features.stats || {};
+  const ownT = typeof stats.tempC === 'number' && Number.isFinite(stats.tempC) ? stats.tempC : null;
+  const [, mo, dd] = String(features.week ?? '').split('-').map(Number);
+  const seasonAmt = mo ? dial('ground.season', 0) * SEASON_GROUND : 0;
+  // the race week's own palette: what the season's ground and the mineral's sea are laid as steps from
+  const race = seasonAmt > 0 || dial('sea.mineral', 0) > 0 ? coastPalette(ANCHOR.tempC / 30) : null;
+  let season = null, seasonLow = null;
+  if (seasonAmt > 0) {
+    const sCal = ((mo - 1 + ((dd || 1) - 1) / 30.44 - 0.5) / 2 + 6) % 6;   // 0 mid-January, 3 mid-July
+    const sT = ownT == null ? sCal : sCal <= 3 ? 3 * clamp((ownT - 10) / 20, 0, 1) : 6 - 3 * clamp((ownT - 10) / 20, 0, 1);
+    const s = (sCal + SEASON_TEMP * (sT - sCal) + 6) % 6;
+    const i = Math.floor(s), f = s - i, a = SEASON_FAMILY[i], b = SEASON_FAMILY[(i + 1) % 6];
+    for (const key of SIGNATURE_GROUND) shiftBy(pal[key], mixc(a[key], b[key], f), race[key], seasonAmt);
+    shiftBy(pal.litWarm, mixc(a.litWarm, b.litWarm, f), race.litWarm, seasonAmt * SEASON_LIGHT);
+    seasonLow = mixc(a.landLow, b.landLow, f);
+    season = f < 0.5 ? `${SEASON[i]} ${pct(1 - f)}, ${SEASON[(i + 1) % 6]}` : `${SEASON[(i + 1) % 6]} ${pct(f)}, ${SEASON[i]}`;
+  }
+  const soilAmt = dial('ground.soil', 0) * SOIL_AMT;
+  let soil = null;
+  if (soilAmt > 0) {
+    const share = { salt: sstep(0.62, 0.71, stats.indoor || 0) };
+    share.sienna = (1 - share.salt) * sstep(360, 440, stats.climb || 0);
+    share.gold = (1 - share.salt - share.sienna) * sstep(26.25, 27.75, ownT ?? 0);
+    share.lichen = 1 - share.salt - share.sienna - share.gold;
+    const ground = new THREE.Color(0, 0, 0);
+    for (const k in share) ground.add(C(SOIL[k]).multiplyScalar(share[k]));
+    // the soil is the season's ground too, let down to the soil's own value
+    if (seasonLow) ground.lerp(dilute(seasonLow, lum(ground)), SOIL_SEASON);
+    pal.dry.lerp(ground, soilAmt);
+    soil = Object.entries(share).filter(([, x]) => x > 0.005).sort((p, q) => q[1] - p[1]).map(([k, x]) => `${k} ${pct(x)}`).join(', ');
+  }
+
   // ---- intensity. An easy week keeps its hues but lifts its shadows, so the
   // contrast drops and the colour stays; a hard one sinks them and reddens
   // the rock.
@@ -443,6 +552,16 @@ function weekPalette(features) {
   else accent.copy(pal.ink);
   pal.accent = accent;
   pal.accentAmt = accentAmt;
+  // ---- sea.mineral: the water carries the same mineral, as far as the other
+  // sports go; a week of running alone keeps its weather's sea
+  const seaMin = s4 > 0 ? dial('sea.mineral', 0) * clamp(SEA_MINERAL * sum, 0, SEA_MINERAL_MAX) : 0;
+  if (seaMin > 0) {
+    for (const key of SEA_KEYS) {
+      const sea = new THREE.Color(0, 0, 0);
+      for (const k in sport) if (sport[k] > 0) sea.add(C(MINERAL_SEA[k][key]).multiplyScalar((sport[k] / secs) ** 4 / s4));
+      shiftBy(pal[key], sea, race[key], seaMin);
+    }
+  }
   const swim = secs ? sport.swim / secs : 0;
   if (swim > 0) {
     const tq = clamp(swim * 4, 0, 0.6);
@@ -511,7 +630,10 @@ function weekPalette(features) {
       : paler > 0 ? `paler, shallower water (${pct(paler)})` : 'the sea as the race week'}`,
     s4 > 0
       ? `${Object.entries(sport).filter(([, x]) => x > 0).map(([k, x]) => `${pct(x / secs)} ${k}`).join(', ')} → ${hexOf(accent)} in the rock's darkest creases and the week's stone (${pct(accentAmt)})`
+        + (seaMin > 0 ? `, and its sea turned toward it (${pct(seaMin)})` : '')
       : 'no strength, swim, ride or other sport → no mineral in the rock',
+    ...(season ? [`the week's month${ownT == null ? ', with no temperature: the calendar alone' : ` at ${ownT.toFixed(1)} °C`} → a ground of ${season}`] : []),
+    ...(soil ? [`${pct(stats.indoor || 0)} under a roof, ${Math.round(stats.climb || 0)} m climbed → the driest ground ${soil}`] : []),
     `the sky → ${[
       heat > 0 ? `a heat haze along the horizon (${pct(heat)})` : '',
       cloudSize > 1.01 ? 'bigger clouds in wet air' : cloudSize < 0.99 ? 'smaller, fewer clouds in dry air' : '',
@@ -528,6 +650,9 @@ function weekPalette(features) {
     intensity: +step.toFixed(3),
     vegAmt: +pal.vegAmt.toFixed(3),
     accentAmt: +accentAmt.toFixed(3),
+    ground: season,
+    soil,
+    seaMineral: +seaMin.toFixed(3),
     reasons,
   };
   pal.energy = clamp(features.energy, 0, 1.5);

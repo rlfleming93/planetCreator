@@ -86,6 +86,20 @@ const threadScale = (open) => 1 / Math.max(0.22, Math.cos(open));
  *  clone of one the week already laid and a setStyle on top of it. */
 const to = (colour, hex) => colour.clone().setStyle(hex);
 
+// body.tint: an ice giant is as deep as its week was out of doors. All of it under a roof is Uranus, the cold one
+// paled toward a celadon cyan; the less of it indoors (a week in cold air outside least of all) the further it turns
+// toward Neptune's azure. Every pigment of the cold one but the paper takes the one turn of hue, chroma and value.
+// This body takes weeks 68–100% indoors, so the turn is read across 60–100%.
+const COLD_KEYS = ['ink', 'inkSoft', 'dark', 'sepia', 'litWarm', 'landLow', 'landMid', 'landHigh', 'crest', 'dry', 'shadeCool',
+  'farGlaze', 'stone', 'wood', 'seaShallow', 'seaDeep', 'foam', 'cobalt', 'teal', 'veg', 'bare',
+  'skyHigh', 'skyLow', 'skyBand', 'skyWash', 'skyDeep', 'cloudUnder', 'skyHaze'];
+function coldTone(features) {
+  const tint = clamp(num(P['body.tint'], 0), 0, 1);
+  if (!(tint > 0)) return null;
+  const u = clamp((num(features?.stats?.indoor, 1) - 0.6) / 0.4, 0, 1); // 0 Neptune … 1 Uranus
+  return [(0.10 - 0.14 * u) * tint, (0.10 - 0.14 * u) * tint, (-0.10 + 0.14 * u) * tint];
+}
+
 /** The deck's own lanes: the giant's zonal banding, read as gentle steps across
  *  it. Deterministic, allocation-free, and the same field the shell draws its
  *  bands from (in GLSL it is the same warp; here it is a height). */
@@ -177,7 +191,7 @@ export default {
    * teal in the shade, a cold haze in the sky. The week's own families are
    * overpainted rather than replaced, so a giant of a hard week is still a
    * harder-looking giant than one of an easy week. */
-  palette(pal) {
+  palette(pal, features) {
     const paper = pal.paper;
     // The sheet itself stays the week's own warm paper: an ice giant is a cold
     // body ON warm paper, and bleaching the paper to match it threw away the
@@ -223,6 +237,8 @@ export default {
       pal.skyScheme.x = Math.min(pal.skyScheme.x, 0.02);
       pal.skyScheme.y = Math.max(pal.skyScheme.y, 0.30);
     }
+    const tone = coldTone(features);
+    if (tone) for (const key of COLD_KEYS) pal[key]?.offsetHSL(...tone);
     return pal;
   },
 
@@ -349,7 +365,8 @@ export default {
     // dark in it (the palette's own lands are the painted ground underfoot, and
     // they are laid darker than the haze above them).
     const deckLo = pal.seaShallow.clone().lerp(pal.teal, 0.55);
-    const deckMid = pal.teal.clone().lerp(to(pal.teal, '#8fc3c8'), 0.55);
+    const tone = coldTone(features);
+    const deckMid = pal.teal.clone().lerp(tone ? to(pal.teal, '#8fc3c8').offsetHSL(...tone) : to(pal.teal, '#8fc3c8'), 0.55);
     const deckHi = pal.crest.clone().lerp(pal.paper, 0.42);
     const shade = pal.shadeCool.clone().lerp(pal.seaShallow, 0.35);
     const stormC = pal.seaDeep.clone().lerp(pal.ink, 0.5);

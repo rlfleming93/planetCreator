@@ -39,9 +39,10 @@ export const GLOBE = 0.42;
  * the disc it covers GLOBE of the side across its radius. It is the classic poster's globe (its aim, its light,
  * its world, weather and life) without what stands round it (its companions, the race's ring and their shadow,
  * its system's sun and sky things) or the space behind it. `still` is that radius as a share of a still cut at
- * `crop` from the classic poster, so a page can stand the globe at the size the poster has it. */
+ * `crop` from the classic poster, so a page can stand the globe at the size the poster has it. It is pulled in the
+ * ink frame: a world's print (look.print auto) paints the whole sheet, and the lift would take that for the globe. */
 export function paintGlobe(link, { px = 1024, size = 384, crop = 0.8 } = {}) {
-  return oneAtATime(() => inApp(codeOf(link), px, '&p.poster.shot=classic&p.companions.ringShadow=0', (win) => lift(win, size, crop)));
+  return oneAtATime(() => inApp(codeOf(link), px, '&p.poster.shot=classic&p.companions.ringShadow=0&p.look.print=ink', (win) => lift(win, size, crop)));
 }
 
 // The app in a hidden square frame about `px` device px across, its URL's dials (`?p.<key>=…`) added to the fixed

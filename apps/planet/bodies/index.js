@@ -15,7 +15,7 @@
  *     shape(dir, h, ctx)       → the height after the world's own shape
  *     palette(pal, features)   → the palette, after the world's
  *     companions(ctx)          → objects beside the globe, with the world's
- *     orbit: { reliefCap, fill, floor }  → overrides the world's (floor: the closest orbit, units over R)
+ *     orbit: { reliefCap, fill, floor }  → over the world's; whole when the body has a baseline or shape (floor: the closest orbit, units over R)
  *     reason(stats)            → why the week is this body in plain words: the rule, then the week's own numbers
  *     load()                   → a promise of the module create() draws with,
  *                                fetched for the week drawn as this body only

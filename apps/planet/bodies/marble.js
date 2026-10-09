@@ -64,6 +64,7 @@
  * the camera comes down, so the ground the runner stands on is the week's own.
  */
 import { P } from '../params.js';
+import { monthHue, toHue } from '../ink-space.js';
 
 const RAD = Math.PI / 180;
 const R_PLANET = 120; // base.js's R, for the hooks that are handed no R of their own
@@ -74,6 +75,16 @@ const num = (v) => (Number.isFinite(v) ? v : 0);
 const smooth = (t) => t * t * (3 - 2 * t);
 const sstep = (a, b, x) => smooth(clamp((x - a) / (b - a), 0, 1));
 const MIX = (a, b, t) => a.clone().lerp(b, t);
+
+// body.tint: the regolith takes the week's month on the wheel a rocky week's ground walks (ink.js ground.season, from
+// mid-January): indigo slate, verdigris, sage, ochre, oxide, umber, each its family's own stone at unit luma — the
+// cool ones laid a little stronger than the family and the oxide a little softer, so a warm stone never runs to fruit —
+// and the floors of the bowls take the week's own mineral, as deep as the week went at anything but running.
+const REGOLITH_MONTH = [
+  [0.92, 1.006, 1.176], [0.925, 1.027, 0.955], [1.047, 1.003, 0.836], [1.125, 0.988, 0.751], [1.227, 0.963, 0.694], [1.11, 0.98, 0.873],
+];
+const REGOLITH_KEYS = ['landMid', 'landHigh', 'litWarm', 'crest', 'dry', 'stone', 'farGlaze', 'sepia', 'bare', 'teal'];
+const BOWL_KEYS = ['landLow', 'cobalt', 'seaShallow', 'seaDeep', 'shelf'];
 
 // how the poster is framed: base.js's own fill for this body, and the crop the
 // shelf takes, kept here because the companions hook is called with no framing
@@ -1332,6 +1343,18 @@ export default {
     pal.skyHaze = pal.skyWash.clone();
     pal.skyScheme.set(0.02, 0, -0.4, 0.6);
     pal.skyCirrus = 0;
+    const tint = clamp(num(P['body.tint']), 0, 1);
+    if (tint > 0) {
+      const cast = monthHue(REGOLITH_MONTH, features?.week, 0.5);
+      if (cast) for (const key of REGOLITH_KEYS) toHue(pal[key], cast, 0.6 * tint);
+      const sports = features?.stats?.sports;
+      const l = 0.2126 * accent.r + 0.7152 * accent.g + 0.0722 * accent.b;
+      if (sports && pal.accentAmt > 0 && l > 0) {
+        const mineral = [accent.r / l, accent.g / l, accent.b / l];
+        const k = 0.35 * clamp(1 - num(sports.run), 0, 1) * tint;
+        for (const key of BOWL_KEYS) toHue(pal[key], mineral, k);
+      }
+    }
     return pal;
   },
 

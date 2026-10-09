@@ -132,6 +132,26 @@ float inkTooth(vec2 sp){
 }
 `;
 
+// body.tint: the week's other sports in the belts. Each belt is hashed to one sport by its own index, the share of
+// the belts a sport takes being its share of the week (uBeltCut: strength, other, ride and swim, summed largest
+// first, .w all four), and takes that sport's mineral (uBeltPig) at the belt's own value; past .w the belt is the
+// run's, the deck's own wash. The shell, the ground underfoot and the ceiling over it read the same belts.
+const BELT_SPORT = /* glsl */ `
+uniform vec4 uBeltCut;
+uniform vec3 uBeltPig[4];
+uniform float uBeltTint;
+vec3 beltSport(vec3 b, float i){
+  // the golden ratio's own sequence, not the house hash (which runs high over small whole numbers), its offset fitted
+  // so the belts the poster's face shows split close to the week's shares (a fifth of the week is two belts there) and
+  // a sport's belts are spread over the deck, not stacked
+  float h = fract(i * 0.618034 + 0.865);
+  if (uBeltTint <= 0.0 || h >= uBeltCut.w) return b;
+  vec3 pig = h < uBeltCut.x ? uBeltPig[0] : h < uBeltCut.y ? uBeltPig[1] : h < uBeltCut.z ? uBeltPig[2] : uBeltPig[3];
+  float v = dot(b, vec3(0.2126, 0.7152, 0.0722)) / max(dot(pig, vec3(0.2126, 0.7152, 0.0722)), 1e-3);
+  return mix(b, min(pig * v, vec3(1.0)), uBeltTint);
+}
+`;
+
 const DECK_VERT = /* glsl */ `
 varying vec3 vW;
 varying vec3 vN;
@@ -161,6 +181,7 @@ uniform vec4 uSpotLook[${SPOTS}];  // x: the oval's aspect  y: its own spin  z: 
 varying vec3 vW;
 varying vec3 vN;
 ${NOISE}
+${BELT_SPORT}
 
 // The deck's two washes, each read off a band's own index: a zone is a pale one
 // of the week's own light, a belt is the same week's deeper ground, and the two
@@ -178,7 +199,7 @@ vec3 beltWash(float i){
   float hC = inkH12(vec2(i, 61.0));
   vec3 b = mix(uLandMid, uLandHigh, mix(0.30, 1.0, hB));
   b = mix(b, mix(uShadeCool, uLandHigh, 0.45), 0.55 * step(0.58, hC));
-  return mix(b, uSepia, 0.35 * step(0.86, hC));
+  return beltSport(mix(b, uSepia, 0.35 * step(0.86, hC)), i);
 }
 
 void main(){
@@ -632,6 +653,7 @@ void main(){
 // at a direction, lifted by `lift` (a billow carries a band's edge round it)
 // and mixed across the pixel where two cells meet.
 const BAND_WASH = /* glsl */ `
+${BELT_SPORT}
 vec3 gdZone(float i){
   float h = inkH12(vec2(i, 7.0));
   vec3 z = mix(uLitWarm, uCrest, mix(0.15, 1.0, h));
@@ -642,7 +664,7 @@ vec3 gdBelt(float i){
   float hC = inkH12(vec2(i, 61.0));
   vec3 b = mix(uLandMid, uLandHigh, mix(0.30, 1.0, hB));
   b = mix(b, mix(uShadeCool, uLandHigh, 0.45), 0.55 * step(0.58, hC));
-  return mix(b, uSepia, 0.35 * step(0.86, hC));
+  return beltSport(mix(b, uSepia, 0.35 * step(0.86, hC)), i);
 }
 vec3 gdBand(vec3 d, float belts, float tear, float lift, float soft){
   float wA = inkF3(vec3(d.x, d.y * 3.1, d.z) * 1.35 + 3.0) - 0.5;
@@ -1255,10 +1277,11 @@ const smoothstep01 = (a, b, x) => {
  * The layout is the week's own hand ('giant/sky'): which side the moon and the
  * wall stand, and the seeds they are drawn from. update(camera, k) takes how
  * much of the sky it is (the body's own handoff) and carries the chart's anchor.
+ * `sports` is the gas giant's own belts in the week's sports (sportBelts, BELT_SPORT); without it they stay the deck's.
  */
 export function createCeiling(T, {
   pal, light, time, features, R, radius, glow, shade, high = null, spot = null,
-  moons = null, moonScale = 1, tower = {}, ember = null, belts = BELTS, tear = 1,
+  moons = null, moonScale = 1, tower = {}, ember = null, belts = BELTS, tear = 1, sports = null,
 }) {
   const rng = features.makeRng?.('giant/sky') || (() => 0.5);
   const seed = rng() * 40;
@@ -1303,6 +1326,7 @@ export function createCeiling(T, {
       uBelts: { value: belts },
       uTear: { value: tear },
       uSeed: { value: seed },
+      ...sports,
     },
     vertexShader: DECK_VERT,
     fragmentShader: CEILING_FRAG,
@@ -1343,6 +1367,24 @@ export function createCeiling(T, {
   };
 }
 
+/** body.tint: the BELT_SPORT uniforms for a week. The sports are laid largest share first, so the belts hashed lowest
+ *  carry the week's main other sport and a sport of a few percent reaches a belt only when its share does. Each
+ *  sport's mineral is the one ink.js lays in the rock (the pal.accent* dials), turned a third of the way to the deck's
+ *  own belt wash so it sits in the deck's light; the shader carries each belt to its own value. One set of uniform
+ *  objects, shared by the shell, the ground and the ceiling. */
+function sportBelts(T, features, pal) {
+  const s = features?.stats?.sports || {};
+  const sports = [[s.strength, 'pal.accentStrength'], [s.other, 'pal.accentSport'], [s.ride, 'pal.accentRide'], [s.swim, 'pal.accentSwim']]
+    .map(([share, key]) => [clamp(num(share, 0), 0, 1), key])
+    .sort((a, b) => b[0] - a[0]);
+  let sum = 0;
+  return {
+    uBeltCut: { value: new T.Vector4(...sports.map(([share]) => (sum += share))) },
+    uBeltPig: { value: sports.map(([, key]) => new T.Color(P[key]).lerp(pal.landMid, 0.3)) },
+    uBeltTint: { value: 0.8 * clamp(num(P['body.tint'], 0), 0, 1) },
+  };
+}
+
 /**
  * The body itself: the deck as one shell over the globe, painted as the week's
  * own weather and fading as the camera comes down through it, and the moons
@@ -1362,6 +1404,7 @@ export function createGiant(shared) {
   // the moon's shadow: the caster's own place, and how much of it there is
   const uMoonPm = { value: new T.Vector3(0, radius * 3, 0) };
   const uMoonAm = { value: 0 };
+  const sports = sportBelts(T, features, pal);
   const material = new T.ShaderMaterial({
     uniforms: {
       uPaper: { value: pal.paper.clone() },
@@ -1399,6 +1442,7 @@ export function createGiant(shared) {
       uSpotN: { value: table.count },
       uSpot: { value: table.spot },
       uSpotLook: { value: table.look },
+      ...sports,
     },
     vertexShader: DECK_VERT,
     fragmentShader: DECK_FRAG,
@@ -1425,6 +1469,7 @@ export function createGiant(shared) {
     spot: table.top ? pal.landHigh.clone().lerp(pal.ink, 0.30).lerp(pal.bare || pal.landHigh, 0.25) : null,
     moons: [moonPigment(0), moonPigment(1)],
     tear,
+    sports,
   });
   const moons = createGiantMoons(T, features, pal, light, uniforms, R);
   const object = new T.Group();
@@ -1448,6 +1493,7 @@ export function createGiant(shared) {
       uGdBelts: { value: BELTS },
       uGdBand: { value: 1 },
       uGdPuff: { value: 2.4 },
+      ...sports,
     },
   };
   return {
