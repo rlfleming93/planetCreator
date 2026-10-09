@@ -1,0 +1,90 @@
+/* Planet Creator's night: the look of the galaxy page as tokens, read by every page of the site (home, shelf, make,
+   how, privacy, terms and the galaxy itself). Deep indigo night with a few painted stars; the words on it in the
+   paper's cream; whatever you pick up (a week, a key, a field guide) on a slip of that paper torn off the block and
+   lettered in indigo ink; the one thing to press a patch of vermilion. A page links this before ink.css, which lays
+   it out. apps/planet/ink.html can't load the site's lib/ (the app also ships on its own), so it repeats the few
+   values it needs by value; keep the two in step.
+   Beside the tokens, the one behaviour every page shares: a page change cross-fades instead of blinking. */
+
+@view-transition { navigation: auto; }
+
+:root {
+  color-scheme: dark;
+
+  /* ------------------------------------------------------------------ the night */
+  --night: #0a0d20;                    /* every page's ground: the galaxy's own */
+  --night-lift: #151b35;               /* a socket in it: a planet not painted yet, a tray to drop files in */
+  --night-veil: rgba(10, 13, 32, .94); /* a bar laid over it (a sticky strip, the foot of the galaxy) */
+
+  /* words on the night: the paper's cream, softer for the second voice, quieter for the margin; a word under the
+     pointer warms toward the vermilion, and the vermilion itself, as words and marks, is lit to read on the dark */
+  --cream: #efe6d2;
+  --cream-soft: #d9d1bd;
+  --cream-quiet: #b3ad9c;
+  --cream-rule: rgba(239, 230, 210, .3);
+  --cream-faint: rgba(239, 230, 210, .12);
+  --ember: #f0b39f;
+  --vermilion-lit: #e87a5e;
+
+  /* ------------------------------------------------------------------ the paper and its ink (slips, cards, tabs) */
+  --paper: #efe6d2;
+  --slip-paper: #f3ecdc;
+  --ink: #242a3c;
+  --ink-soft: #4b5470;
+  --rule: rgba(36, 42, 60, .34);
+  --faint: rgba(36, 42, 60, .14);
+  --accent: #b0402a;                   /* vermilion: the one thing on a page to press */
+  --accent-deep: #963320;
+  --teal: #2f5d62;
+
+  /* each year its own quiet ink, newest first, as the galaxy's arms are: a warm paper, a cool blue, a dusk violet */
+  --year-0: #f0d49a;
+  --year-1: #a9bfe8;
+  --year-2: #c6b2e0;
+
+  /* ------------------------------------------------------------------ type and measure */
+  --font: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --edge: clamp(18px, 4.2vw, 64px);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+
+  /* ------------------------------------------------------------------ the sky, for a page without the galaxy's canvas:
+     a lifted middle and two washes of colour over the night, a mottle like a wash drying unevenly, the paint's tooth,
+     and two layers of stars whose tiles never line up (560 and 1270 px), the few bright ones haloed */
+  --sky-wash: radial-gradient(70% 55% at 84% 6%, rgba(92, 72, 152, .15), transparent 72%),
+    radial-gradient(60% 50% at 4% 96%, rgba(36, 84, 126, .13), transparent 72%),
+    radial-gradient(90% 70% at 50% 40%, rgba(28, 34, 78, .3), transparent 78%);
+  --sky-mottle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='720' height='720'%3E%3Cfilter id='m' filterUnits='userSpaceOnUse' x='0' y='0' width='720' height='720'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.0055' numOctaves='3' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .32 0 0 0 0 .6 0 0 0 .2 -.08'/%3E%3C/filter%3E%3Crect width='720' height='720' filter='url(%23m)'/%3E%3C/svg%3E");
+  --sky-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n' filterUnits='userSpaceOnUse' x='0' y='0' width='240' height='240'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .94 0 0 0 0 .9 0 0 0 0 .82 0 0 0 .075 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+  --sky-stars: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='560'%3E%3Ccircle cx='286.5' cy='296.8' r='0.57' fill='%23ffffff' fill-opacity='0.38'/%3E%3Ccircle cx='301.3' cy='44.8' r='0.51' fill='%23dfe6ff' fill-opacity='0.39'/%3E%3Ccircle cx='268.8' cy='472.4' r='0.43' fill='%23f5dcd6' fill-opacity='0.42'/%3E%3Ccircle cx='90.1' cy='100' r='0.36' fill='%23dfe6ff' fill-opacity='0.27'/%3E%3Ccircle cx='326.2' cy='71.4' r='0.56' fill='%23dfe6ff' fill-opacity='0.37'/%3E%3Ccircle cx='472.8' cy='451' r='0.74' fill='%23ffe3ae' fill-opacity='0.24'/%3E%3Ccircle cx='140.9' cy='31.5' r='0.71' fill='%23f3e6c8' fill-opacity='0.64'/%3E%3Ccircle cx='82.1' cy='416.4' r='0.39' fill='%23ffe3ae' fill-opacity='0.35'/%3E%3Ccircle cx='473.5' cy='80.2' r='0.84' fill='%23dfe6ff' fill-opacity='0.52'/%3E%3Ccircle cx='14.2' cy='43' r='0.83' fill='%23ffe3ae' fill-opacity='0.32'/%3E%3Ccircle cx='151.4' cy='281.1' r='0.7' fill='%23ffe3ae' fill-opacity='0.17'/%3E%3Ccircle cx='25.3' cy='248.9' r='0.6' fill='%23dfe6ff' fill-opacity='0.65'/%3E%3Ccircle cx='261.1' cy='197.6' r='0.32' fill='%23dfe6ff' fill-opacity='0.46'/%3E%3Ccircle cx='425.3' cy='168.2' r='0.53' fill='%23ffffff' fill-opacity='0.25'/%3E%3Ccircle cx='89.7' cy='66.4' r='0.59' fill='%23fff4e0' fill-opacity='0.39'/%3E%3Ccircle cx='206.7' cy='211.5' r='0.97' fill='%23ffe3ae' fill-opacity='0.55'/%3E%3Ccircle cx='230.1' cy='514.5' r='0.55' fill='%23f3e6c8' fill-opacity='0.29'/%3E%3Ccircle cx='288.1' cy='4.8' r='0.89' fill='%23dfe6ff' fill-opacity='0.23'/%3E%3Ccircle cx='69.2' cy='44.7' r='0.71' fill='%23ffe3ae' fill-opacity='0.35'/%3E%3Ccircle cx='57.9' cy='313.4' r='0.58' fill='%23ffffff' fill-opacity='0.57'/%3E%3Ccircle cx='335' cy='338.1' r='0.54' fill='%23fff4e0' fill-opacity='0.32'/%3E%3Ccircle cx='365' cy='364.5' r='1.06' fill='%23fff4e0' fill-opacity='0.45'/%3E%3Ccircle cx='77' cy='362.3' r='1.02' fill='%23ffffff' fill-opacity='0.25'/%3E%3Ccircle cx='210.9' cy='426' r='0.61' fill='%23f3e6c8' fill-opacity='0.17'/%3E%3Ccircle cx='371.8' cy='275.7' r='0.59' fill='%23f5dcd6' fill-opacity='0.21'/%3E%3Ccircle cx='176.4' cy='51.5' r='0.52' fill='%23f3e6c8' fill-opacity='0.27'/%3E%3Ccircle cx='457.3' cy='523.7' r='0.72' fill='%23dfe6ff' fill-opacity='0.16'/%3E%3Ccircle cx='476.2' cy='318.8' r='0.66' fill='%23fff4e0' fill-opacity='0.4'/%3E%3Ccircle cx='277.8' cy='275.1' r='0.33' fill='%23fff4e0' fill-opacity='0.52'/%3E%3Ccircle cx='47.5' cy='558.6' r='0.58' fill='%23ffffff' fill-opacity='0.45'/%3E%3Ccircle cx='514.4' cy='550.1' r='0.32' fill='%23ffe3ae' fill-opacity='0.19'/%3E%3Ccircle cx='221.2' cy='233.7' r='0.51' fill='%23fff4e0' fill-opacity='0.16'/%3E%3Ccircle cx='259' cy='151.5' r='0.43' fill='%23dfe6ff' fill-opacity='0.46'/%3E%3Ccircle cx='189.4' cy='329.7' r='0.41' fill='%23f3e6c8' fill-opacity='0.64'/%3E%3Ccircle cx='249.5' cy='137.3' r='0.65' fill='%23ffe3ae' fill-opacity='0.24'/%3E%3Ccircle cx='360.4' cy='1.6' r='0.33' fill='%23f5dcd6' fill-opacity='0.19'/%3E%3Ccircle cx='76' cy='457.4' r='0.34' fill='%23f5dcd6' fill-opacity='0.4'/%3E%3Ccircle cx='413.8' cy='454.9' r='0.32' fill='%23f5dcd6' fill-opacity='0.17'/%3E%3Ccircle cx='120.8' cy='63.2' r='0.39' fill='%23ffffff' fill-opacity='0.17'/%3E%3Ccircle cx='357.8' cy='403.6' r='0.54' fill='%23f5dcd6' fill-opacity='0.48'/%3E%3Ccircle cx='214.9' cy='427.8' r='0.35' fill='%23fff4e0' fill-opacity='0.2'/%3E%3Ccircle cx='350.2' cy='4.7' r='0.53' fill='%23ffffff' fill-opacity='0.63'/%3E%3Ccircle cx='291.1' cy='490.6' r='0.32' fill='%23f5dcd6' fill-opacity='0.34'/%3E%3Ccircle cx='141.6' cy='550.4' r='0.33' fill='%23dfe6ff' fill-opacity='0.56'/%3E%3Ccircle cx='519.1' cy='554.7' r='0.41' fill='%23dfe6ff' fill-opacity='0.31'/%3E%3Ccircle cx='55.3' cy='105.1' r='0.32' fill='%23ffffff' fill-opacity='0.17'/%3E%3Ccircle cx='308.1' cy='319.9' r='0.35' fill='%23fff4e0' fill-opacity='0.61'/%3E%3Ccircle cx='468.2' cy='152.1' r='0.32' fill='%23dfe6ff' fill-opacity='0.3'/%3E%3Ccircle cx='78.5' cy='208.4' r='0.33' fill='%23ffe3ae' fill-opacity='0.58'/%3E%3Ccircle cx='258.1' cy='556.1' r='0.39' fill='%23ffe3ae' fill-opacity='0.36'/%3E%3Ccircle cx='144.9' cy='282.1' r='0.98' fill='%23dfe6ff' fill-opacity='0.23'/%3E%3Ccircle cx='227.9' cy='71.4' r='0.35' fill='%23fff4e0' fill-opacity='0.4'/%3E%3Ccircle cx='51.6' cy='415.1' r='0.33' fill='%23dfe6ff' fill-opacity='0.2'/%3E%3Ccircle cx='438.4' cy='336.6' r='0.57' fill='%23dfe6ff' fill-opacity='0.43'/%3E%3Ccircle cx='424.3' cy='516.4' r='0.39' fill='%23fff4e0' fill-opacity='0.45'/%3E%3Ccircle cx='73.4' cy='292.8' r='0.64' fill='%23ffffff' fill-opacity='0.17'/%3E%3Ccircle cx='510.7' cy='74.9' r='0.91' fill='%23f5dcd6' fill-opacity='0.27'/%3E%3Ccircle cx='319.4' cy='438.9' r='1.01' fill='%23f3e6c8' fill-opacity='0.3'/%3E%3Ccircle cx='179.4' cy='400.3' r='0.67' fill='%23f5dcd6' fill-opacity='0.16'/%3E%3Ccircle cx='68.5' cy='239.7' r='0.73' fill='%23ffffff' fill-opacity='0.29'/%3E%3Ccircle cx='415' cy='68.6' r='0.32' fill='%23fff4e0' fill-opacity='0.19'/%3E%3Ccircle cx='528.2' cy='141.1' r='0.61' fill='%23f3e6c8' fill-opacity='0.23'/%3E%3Ccircle cx='400.9' cy='422.8' r='0.57' fill='%23ffe3ae' fill-opacity='0.64'/%3E%3Ccircle cx='452.5' cy='306.9' r='0.42' fill='%23ffffff' fill-opacity='0.23'/%3E%3C/svg%3E");
+  --sky-glints: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1270' height='1270'%3E%3Cdefs%3E%3CradialGradient id='h0'%3E%3Cstop offset='0' stop-color='%23fff1d6' stop-opacity='.5'/%3E%3Cstop offset='.25' stop-color='%23fff1d6' stop-opacity='.16'/%3E%3Cstop offset='1' stop-color='%23fff1d6' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='h1'%3E%3Cstop offset='0' stop-color='%23dbe4ff' stop-opacity='.5'/%3E%3Cstop offset='.25' stop-color='%23dbe4ff' stop-opacity='.16'/%3E%3Cstop offset='1' stop-color='%23dbe4ff' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='h2'%3E%3Cstop offset='0' stop-color='%23ffd99a' stop-opacity='.5'/%3E%3Cstop offset='.25' stop-color='%23ffd99a' stop-opacity='.16'/%3E%3Cstop offset='1' stop-color='%23ffd99a' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='h3'%3E%3Cstop offset='0' stop-color='%23f6d2cc' stop-opacity='.5'/%3E%3Cstop offset='.25' stop-color='%23f6d2cc' stop-opacity='.16'/%3E%3Cstop offset='1' stop-color='%23f6d2cc' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='267.5' cy='190.9' r='6.3' fill='url(%23h1)'/%3E%3Ccircle cx='267.5' cy='190.9' r='0.87' fill='%23dbe4ff' fill-opacity='0.69'/%3E%3Ccircle cx='454.7' cy='409.3' r='7.9' fill='url(%23h0)'/%3E%3Ccircle cx='454.7' cy='409.3' r='0.73' fill='%23fff1d6' fill-opacity='0.55'/%3E%3Ccircle cx='777.2' cy='939.7' r='8.2' fill='url(%23h3)'/%3E%3Ccircle cx='777.2' cy='939.7' r='1.04' fill='%23f6d2cc' fill-opacity='0.57'/%3E%3Ccircle cx='1172.5' cy='1070.7' r='7.4' fill='url(%23h3)'/%3E%3Ccircle cx='1172.5' cy='1070.7' r='0.89' fill='%23f6d2cc' fill-opacity='0.59'/%3E%3Ccircle cx='361.5' cy='108.9' r='5.5' fill='url(%23h0)'/%3E%3Ccircle cx='361.5' cy='108.9' r='1.13' fill='%23fff1d6' fill-opacity='0.69'/%3E%3Ccircle cx='197.2' cy='397.7' r='9.3' fill='url(%23h2)'/%3E%3Ccircle cx='197.2' cy='397.7' r='0.92' fill='%23ffd99a' fill-opacity='0.85'/%3E%3Ccircle cx='786.8' cy='417.3' r='8.9' fill='url(%23h3)'/%3E%3Ccircle cx='786.8' cy='417.3' r='1.07' fill='%23f6d2cc' fill-opacity='0.58'/%3E%3Ccircle cx='107.9' cy='991.6' r='8.5' fill='url(%23h1)'/%3E%3Ccircle cx='107.9' cy='991.6' r='0.73' fill='%23dbe4ff' fill-opacity='0.72'/%3E%3Ccircle cx='261.5' cy='208.5' r='5.5' fill='url(%23h2)'/%3E%3Ccircle cx='261.5' cy='208.5' r='0.86' fill='%23ffd99a' fill-opacity='0.81'/%3E%3Ccircle cx='747.7' cy='145.9' r='6.8' fill='url(%23h2)'/%3E%3Ccircle cx='747.7' cy='145.9' r='1.09' fill='%23ffd99a' fill-opacity='0.73'/%3E%3Ccircle cx='258.1' cy='1118' r='5.8' fill='url(%23h0)'/%3E%3Ccircle cx='258.1' cy='1118' r='1.33' fill='%23fff1d6' fill-opacity='0.9'/%3E%3Ccircle cx='360.4' cy='1001.6' r='6.8' fill='url(%23h3)'/%3E%3Ccircle cx='360.4' cy='1001.6' r='0.97' fill='%23f6d2cc' fill-opacity='0.73'/%3E%3Ccircle cx='1134.7' cy='331.7' r='6.2' fill='url(%23h1)'/%3E%3Ccircle cx='1134.7' cy='331.7' r='0.84' fill='%23dbe4ff' fill-opacity='0.91'/%3E%3C/svg%3E");
+
+  /* ------------------------------------------------------------------ drawn things */
+  /* a brush stroke laid under a word: loaded at the start, lifting off at the end */
+  --ink-stroke: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 8' preserveAspectRatio='none'%3E%3Cpath d='M0.5 4.7 C 9 3.1, 27 3.2, 46 3.6 S 81 3.5, 99.5 4.2 C 84 4.9, 63 5.5, 42 5.4 S 10 5.8, 0.5 4.7 Z'/%3E%3C/svg%3E");
+  /* a slip of the paper torn off the block, laid whole (stretched, so no nine-slice seam shows over the dark), with
+     the paper's own fibre in it */
+  --slip-whole: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400' preserveAspectRatio='none'%3E%3Cfilter id='t' x='-5%25' y='-5%25' width='110%25' height='110%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.045' numOctaves='4' seed='3'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='11' result='torn'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .4 0 0 0 0 .33 0 0 0 0 .22 0 0 0 .16 0'/%3E%3CfeComposite in2='torn' operator='in' result='fibre'/%3E%3CfeMerge%3E%3CfeMergeNode in='torn'/%3E%3CfeMergeNode in='fibre'/%3E%3C/feMerge%3E%3C/filter%3E%3Crect filter='url(%23t)' x='12' y='12' width='376' height='376' fill='%23f3ecdc'/%3E%3C/svg%3E");
+  /* a pen loop drawn round the thing you picked: vermilion on the paper, lit vermilion on the night */
+  --ink-loop: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M26 9 C 70 1, 150 2, 186 13 C 204 20, 201 44, 172 52 C 128 61, 58 60, 22 50 C 2 44, 3 22, 22 13 C 38 6, 58 4, 76 5' fill='none' stroke='%23b0402a' stroke-width='1.7' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+  --night-loop: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M26 9 C 70 1, 150 2, 186 13 C 204 20, 201 44, 172 52 C 128 61, 58 60, 22 50 C 2 44, 3 22, 22 13 C 38 6, 58 4, 76 5' fill='none' stroke='%23e87a5e' stroke-width='1.7' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+  /* a patch of the night laid under words that sit over a painting (the planet's controls) */
+  --night-patch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-10%25' y='-30%25' width='120%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.045' numOctaves='3' seed='5'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='10'/%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpath filter='url(%23r)' fill='%230a0d20' fill-opacity='0.74' d='M10 16 C 44 5, 150 6, 188 12 C 199 24, 196 46, 180 52 C 130 58, 52 57, 18 50 C 5 43, 3 25, 10 16 Z'/%3E%3C/svg%3E");
+  /* a button: a patch of vermilion laid on with the brush, its edge torn a little (the hover a shade deeper), and the
+     quiet one: the same patch in slip paper, drawn round in ink */
+  --btn: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-5%25' y='-20%25' width='110%25' height='140%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='3' seed='8'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='7'/%3E%3C/filter%3E%3Cpath filter='url(%23r)' fill='%23b0402a' d='M6 10 C 50 5, 150 6, 194 9 C 196 26, 195 41, 193 51 C 140 55, 60 55, 7 51 C 5 38, 4 22, 6 10 Z'/%3E%3C/svg%3E");
+  --btn-hover: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-5%25' y='-20%25' width='110%25' height='140%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='3' seed='8'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='7'/%3E%3C/filter%3E%3Cpath filter='url(%23r)' fill='%23963320' d='M6 10 C 50 5, 150 6, 194 9 C 196 26, 195 41, 193 51 C 140 55, 60 55, 7 51 C 5 38, 4 22, 6 10 Z'/%3E%3C/svg%3E");
+  --btn-quiet: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-5%25' y='-20%25' width='110%25' height='140%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='3' seed='3'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='6'/%3E%3C/filter%3E%3Cpath filter='url(%23r)' fill='%23f3ecdc' fill-opacity='.92' stroke='%23242a3c' stroke-opacity='.5' stroke-width='1.3' vector-effect='non-scaling-stroke' d='M6 10 C 50 5, 150 6, 194 9 C 196 26, 195 41, 193 51 C 140 55, 60 55, 7 51 C 5 38, 4 22, 6 10 Z'/%3E%3C/svg%3E");
+}
+
+/* The page change: the night and the name in the corner hold still while the rest of the old page dims away and
+   the new one rises into place. Browsers without cross-document view transitions just change page (the night is
+   the ground of both, so there is no flash between them). */
+::view-transition-group(root) { animation-duration: .34s; animation-timing-function: var(--ease-out); }
+::view-transition-old(page) { animation: page-out .2s ease-in both; }
+::view-transition-new(page) { animation: page-in .46s var(--ease-out) .05s both; }
+::view-transition-group(page) { animation: none; }
+@keyframes page-out { to { opacity: 0; transform: translateY(-6px); } }
+@keyframes page-in { from { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation-duration: .01ms !important; animation-delay: 0s !important; }
+}

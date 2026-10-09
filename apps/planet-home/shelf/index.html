@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Your shelf · Planet Creator</title>
+<meta name="description" content="The planets you've kept, one for each week, laid out on the night a month at a time.">
+<meta property="og:image" content="https://planet.fleming.run/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="628">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a0d20">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23efe6d2' stroke='%231b2540' stroke-width='1.5'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="/kit/icon-192.png">
+<link rel="canonical" href="https://planet.fleming.run/shelf/">
+<!-- Ryan's shelf (?ryan) is drawn from ryan.json: asked for with the page rather than after its modules; a shelf of
+     your own never needs it -->
+<script>if (new URLSearchParams(location.search).has('ryan')) document.head.append(Object.assign(document.createElement('link'), { rel: 'preload', href: 'ryan.json', as: 'fetch', crossOrigin: 'anonymous' }));</script>
+<link rel="stylesheet" href="../lib/space.css">
+<link rel="stylesheet" href="../lib/ink.css">
+<style>
+  /* the page: the words and the filters at the head, then every week as a planet on the night, a month to a row and
+     the newest month first, like the pages of a star atlas; on a wide screen the week you picked stands in a column
+     beside them, on a phone it comes up from the foot of the screen */
+  .shelf { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 clamp(30px, 3.4vw, 60px); padding: 26px var(--edge) 0; }
+  .head { display: grid; gap: 16px; align-content: start; }
+  .head .title { font-size: clamp(40px, 5vw, 68px); }
+  .head .lede { max-width: 52ch; }
+  .head .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; }
+  .status { min-height: 1.5em; font-style: italic; font-size: 15px; color: var(--fg-quiet); }
+  .status:empty { display: none; }
+  .status button { margin-left: 10px; }
+
+  /* the filters: words, the one in force drawn round with the pen. On a phone they run on past the edge, fading
+     there, and scroll sideways, so they keep one line */
+  .pick { flex: none; appearance: none; position: relative; border: 0; background: none; padding: 8px 12px 9px; color: var(--fg-soft); font: 500 16px/1.2 var(--font); white-space: nowrap; cursor: pointer; }
+  .pick::before { content: ""; position: absolute; inset: 0 -2px -1px -4px; background: var(--loop) 0 0 / 100% 100% no-repeat; opacity: 0; transition: opacity .14s ease; pointer-events: none; }
+  .pick:hover, .pick[aria-pressed="true"] { color: var(--fg); }
+  .pick[aria-pressed="true"]::before { opacity: 1; }
+  .pick b { margin-left: 5px; font-weight: 400; font-size: 13px; color: var(--fg-quiet); font-variant-numeric: lining-nums tabular-nums; }
+  .filters { flex: 1; min-width: 0; display: flex; gap: 0 4px; padding: 4px 0 6px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask: linear-gradient(90deg, #000 calc(100% - 30px), transparent); mask: linear-gradient(90deg, #000 calc(100% - 30px), transparent); }
+  /* the bar over the weeks, held at the top of the screen while you browse them: the way to any month (a native
+     picker laid unseen over its word, as the galaxy's Choose week is) beside the filters */
+  .atlas { min-width: 0; }
+  .bar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 0 14px; margin: 14px calc(-1 * var(--edge)) 0; padding: 2px var(--edge); background: var(--night-veil); }
+  .bar::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 16px; background: linear-gradient(var(--night-veil), transparent); pointer-events: none; }
+  .jump { flex: none; min-height: 44px; padding: 12px 2px 14px; }
+  .jump select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+  .jump:has(select:focus-visible) { color: var(--hot); outline: 1px dashed var(--hot); outline-offset: 4px; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filters:empty { display: none; }
+
+  /* ---------------------------------------------------------- the weeks */
+  .weeks { --orb: 84px; --gap: 4px; padding-bottom: 8px; }
+  .weeks:not([data-state]) { min-height: 100svh; } /* the room the weeks take is kept while they come in, so nothing below jumps */
+  .year > h2 { margin-top: 38px; font-weight: 400; font-size: clamp(32px, 3.6vw, 48px); line-height: 1; letter-spacing: .06em; color: var(--yr); font-variant-numeric: lining-nums; filter: url(#pc-ink); }
+  .month { margin-top: 20px; scroll-margin-top: 66px; /* a jump lands it under the bar */ }
+  .month h3 { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; font-weight: 400; font-style: italic; font-size: 16.5px; color: var(--fg-soft); }
+  .month h3::after { content: ""; flex: 1; height: 1px; background: var(--line-faint); } /* a line of the chart's grid */
+  .month ol { display: grid; gap: var(--gap); margin: 0; padding: 0; list-style: none; }
+  .month li { position: relative; }
+  /* a month's weeks strung on one dashed line, planet to planet, the way a chart joins the stars of a figure */
+  .month li:has(~ li:not([hidden]))::before { content: ""; position: absolute; left: calc(var(--orb) / 2); top: calc(var(--orb) / 2 + 6px); height: calc(100% + var(--gap)); border-left: 1px dashed var(--cream-rule); pointer-events: none; }
+
+  /* a week: its planet in a soft glow of its star's colour (the galaxy's), sized by its hours; its name; what kind of
+     world it is and the one thing it did; its day and numbers. On a phone one to a line, the planets down the left */
+  .wk { display: grid; grid-template-columns: var(--orb) minmax(0, 1fr); align-items: center; gap: 1px 16px; width: 100%; padding: 6px 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .wk > span:not(.orb) { grid-column: 2; }
+  .orb { grid-row: 1 / span 3; position: relative; z-index: 1; display: grid; place-items: center; width: var(--orb); aspect-ratio: 1; }
+  .orb::before { content: ""; position: absolute; inset: -26%; border-radius: 50%; background: radial-gradient(closest-side, rgb(var(--glow) / .3), rgb(var(--glow) / .08) 56%, transparent); transition: opacity .3s ease; opacity: .8; }
+  .orb img { position: relative; display: block; width: calc(var(--k) * 100%); height: auto; aspect-ratio: 1; border-radius: 50%; background: var(--night-lift); -webkit-mask: radial-gradient(closest-side, #000 90%, transparent 100%); mask: radial-gradient(closest-side, #000 90%, transparent 100%); transition: transform .4s var(--ease-out); }
+  .orb::after { content: ""; position: absolute; width: calc(var(--k) * 100% + 12px); aspect-ratio: 1; border: 1.5px solid var(--cream); border-radius: 50%; opacity: 0; transform: scale(.92); transition: opacity .2s ease, transform .3s var(--ease-out); }
+  .wk:hover .orb img, .wk:focus-visible .orb img { transform: scale(1.07); }
+  .wk:hover .orb::before, .wk[aria-pressed="true"] .orb::before { opacity: 1; }
+  .wk[aria-pressed="true"] .orb::after { opacity: 1; transform: none; }
+  .wk:focus-visible { outline: 0; }
+  .wk:focus-visible .orb::after { opacity: 1; transform: none; border-style: dashed; border-color: var(--hot); }
+  .wk.pending img { opacity: 0; } /* not painted yet: an empty socket where it will be */
+  .wk.pending .orb::before { background: radial-gradient(closest-side, var(--night-lift) 70%, transparent); animation: socket 1.4s ease-in-out infinite alternate; }
+  @keyframes socket { from { opacity: .4; } to { opacity: 1; } }
+  .name { font-size: 16.5px; line-height: 1.25; color: var(--fg); text-wrap: pretty; }
+  .wk:hover .name { color: var(--hot); }
+  .what { font-size: 14px; line-height: 1.35; font-style: italic; color: var(--fg-soft); }
+  .what:empty { display: none; }
+  .when { font-size: 13.5px; line-height: 1.35; color: var(--fg-quiet); font-variant-numeric: lining-nums tabular-nums; }
+
+  /* ---------------------------------------------------------- the week you picked: a slip of paper with its planet.
+     On a phone it comes up from the foot of the screen, the planet set in the slip's corner like a plate in a field
+     guide; on a wide screen the planet floats large on the night over its slip, in a column of its own */
+  .open { position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 20; max-height: min(82svh, 680px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  .frame { position: absolute; left: 22px; top: 22px; z-index: 1; width: 100px; aspect-ratio: 1; pointer-events: none; }
+  .frame::before { content: ""; position: absolute; inset: -22%; border-radius: 50%; background: radial-gradient(closest-side, rgb(var(--glow, 200 199 189) / .32), rgb(var(--glow, 200 199 189) / .08) 58%, transparent); display: none; }
+  .frame img, .frame iframe { position: absolute; }
+  .frame img { inset: 0; width: 100%; height: 100%; transition: opacity .8s ease; }
+  .frame iframe { inset: -12.5%; width: 125%; height: 125%; opacity: 0; transition: opacity .8s ease; }
+  .frame.live iframe { opacity: 1; }
+  .frame.live img { opacity: 0; }
+  .card { position: relative; display: grid; gap: 6px; padding: 22px 22px 14px; transform: rotate(-.2deg); }
+  .card-head { display: grid; align-content: center; gap: 2px; min-height: 100px; padding: 0 30px 0 116px; }
+  .card .when { font-style: italic; font-size: 14px; color: var(--ink-soft); }
+  .card h2 { font-weight: 500; font-size: 21px; line-height: 1.15; letter-spacing: -.005em; text-wrap: balance; filter: url(#pc-ink); }
+  .card .body { font-style: italic; color: var(--ink-soft); }
+  .card .body:empty { display: none; }
+  .card .nums { font-variant-numeric: lining-nums tabular-nums; }
+  .card .race { font-style: italic; color: var(--accent); }
+  /* why the week is the body it is, in its own numbers (ryan.json `why`, the app's own words) */
+  .card .why { font-size: 15px; line-height: 1.4; font-style: italic; }
+  .card .why b { font-style: normal; font-weight: 500; }
+  .card .why:empty { display: none; }
+  /* the rule a body filter shows, said once under the bar */
+  .rule { margin: 12px 0 0; max-width: 62ch; font-size: 14.5px; line-height: 1.4; font-style: italic; color: var(--fg-soft); }
+  .rule:empty { display: none; }
+  .notes { display: grid; gap: 4px; margin: 4px 0 0; padding: 8px 0 0; list-style: none; border-top: 1px solid var(--faint); font-size: 15px; line-height: 1.4; }
+  .notes:empty { display: none; }
+  .notes li { position: relative; padding-left: 18px; font-style: italic; }
+  .notes li::before { content: ""; position: absolute; left: 0; top: .62em; width: 10px; height: 3px; background: var(--accent); -webkit-mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; }
+  .card .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; margin-top: 8px; }
+  .card .more { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 20px; }
+  .card .more .word, .card .step .word { min-height: 40px; padding: 10px 1px 12px; font-size: 14px; }
+  .card .step { display: flex; justify-content: space-between; gap: 12px; margin-top: 2px; padding-top: 2px; border-top: 1px solid var(--faint); }
+  .close { position: absolute; top: 6px; right: 6px; z-index: 2; width: 44px; height: 44px; border: 0; background: none; color: var(--ink); font: 22px/1 var(--font); opacity: .6; cursor: pointer; }
+  .close:hover, .close:focus-visible { color: var(--accent); opacity: 1; }
+  .open .status { font-size: 14px; color: var(--ink-soft); }
+  .strava-credit { display: grid; gap: 5px; max-width: 365px; color: var(--ink-soft); font-size: 13px; line-height: 1.35; }
+  .strava-credit[hidden] { display: none; }
+  .strava-mark svg { display: block; width: min(100%, 245px); height: auto; }
+  .card-head .garmin { font-size: 14.5px; letter-spacing: .02em; color: var(--ink-soft); }
+
+  /* keeping a copy of your own shelf */
+  .keep { display: grid; gap: 10px; margin-top: 40px; max-width: 60ch; }
+  .keep .acts { display: flex; flex-wrap: wrap; gap: 10px 12px; }
+
+  /* ---------------------------------------------------------- the poster, before it goes */
+  .sheet { width: min(96vw, 980px); max-height: 94svh; padding: 0; border: 0; background: none; color: var(--ink); overflow: visible; }
+  .sheet::backdrop { background: rgba(6, 8, 18, .72); }
+  .sheet-in { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px 34px; align-items: center; }
+  .sheet canvas { display: block; height: min(80svh, 820px); width: auto; max-width: 100%; transform: rotate(-.4deg); box-shadow: 0 1px 0 var(--faint); }
+  .sheet-text { display: grid; gap: 14px; align-content: center; }
+
+  @media (min-width: 700px) {
+    /* a month to a row: five weeks across, each planet over its words, the dashed line running through the planets */
+    .weeks { --orb: clamp(96px, 10.5vw, 136px); --gap: 14px; }
+    .month ol { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .month li:has(~ li:not([hidden]))::before { left: 50%; top: calc(var(--orb) / 2 + 6px); width: calc(100% + var(--gap)); height: 0; border-left: 0; border-top: 1px dashed var(--cream-rule); }
+    .wk { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 2px; padding: 6px 4px 10px; text-align: center; }
+    .wk > span:not(.orb) { grid-column: auto; }
+    .orb { grid-row: auto; margin-bottom: 8px; }
+    .name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 15.5px; }
+    .what { font-size: 13.5px; }
+    .when { font-size: 13px; }
+    .open { left: auto; right: 14px; bottom: 14px; width: min(420px, calc(100vw - 28px)); }
+  }
+  @media (min-width: 1100px) {
+    /* the picked week in a column of its own, beside the weeks, always in view */
+    .shelf { grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); }
+    .head, .atlas, .keep { grid-column: 1; }
+    .weeks { --orb: clamp(96px, 7.6vw, 132px); }
+    .open { position: sticky; top: 14px; left: auto; right: auto; bottom: auto; grid-column: 2; grid-row: 1 / span 4; align-self: start; display: grid; justify-items: center; width: auto; max-height: calc(100svh - 28px); padding: 0 6px 14px; }
+    .frame { position: relative; left: auto; top: auto; width: min(100%, 330px); margin: 0 0 -20px; pointer-events: auto; }
+    .frame::before { display: block; }
+    .card { justify-self: stretch; padding: 32px 28px 18px; }
+    .card-head { min-height: 0; padding: 0; }
+    .card h2 { font-size: 25px; }
+    .close { display: none; }
+  }
+  @media (max-width: 699px) {
+    .sheet-in { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+    .sheet canvas { height: auto; width: min(100%, 360px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wk.pending .orb::before { animation: none; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <filter id="pc-ink" x="-4%" y="-15%" width="108%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="4" result="fibre"/><feDisplacementMap in="SourceGraphic" in2="fibre" scale="1.2" xChannelSelector="R" yChannelSelector="G"/></filter>
+</svg>
+
+<nav class="top" aria-label="Planet Creator">
+  <a class="brand" href="../">Planet Creator</a>
+  <ul class="trail">
+    <li><a class="word" href="../galaxy/">Galaxy</a></li>
+    <li><a class="word" href="./?ryan" id="nav-ryan">Ryan's shelf</a></li>
+    <li><a class="word" href="../make/">Make yours</a></li>
+    <li><a class="word" href="../how/">How it works</a></li>
+  </ul>
+</nav>
+
+<main class="shelf" id="shelf">
+  <header class="head">
+    <h1 class="title" id="title">Your shelf</h1>
+    <p class="lede" id="lede">The weeks you keep land here, each with its month.</p>
+    <div class="acts" id="starts"><a class="word" href="./?ryan">Ryan's shelf</a></div>
+    <p class="status" id="status" role="status"></p>
+  </header>
+  <script>
+    // Ryan's shelf is settled before the page is first drawn, so its head never changes under the reader
+    if (new URLSearchParams(location.search).has('ryan')) {
+      document.title = "Ryan's shelf · Planet Creator";
+      document.getElementById('nav-ryan').setAttribute('aria-current', 'page');
+      document.getElementById('title').textContent = "Ryan's shelf";
+      document.getElementById('lede').textContent = 'Every week of his training since March 2025, each painted from his Garmin files. Pick one to read it, land on it, or find its star in the galaxy.';
+      document.getElementById('starts').innerHTML = '<a class="btn quiet" href="../galaxy/">Open the galaxy</a><a class="word" href="./">Your shelf</a>';
+    }
+  </script>
+
+  <div class="atlas">
+    <div class="bar" id="bar">
+      <label class="word jump"><span>Jump to month</span><span aria-hidden="true"> ▾</span><select id="jump" aria-label="Jump to a month"></select></label>
+      <div class="filters" id="filters" role="group" aria-label="Show only"></div>
+    </div>
+    <p class="rule" id="rule" aria-live="polite"></p>
+    <div class="weeks" id="weeks"></div>
+  </div>
+
+  <section class="keep" id="keep" aria-label="Keep a copy" hidden>
+    <p class="aside">Your shelf lives in this browser and nowhere else. To move it to another computer, save it to a file and open the file there.</p>
+    <div class="acts">
+      <button class="btn quiet" type="button" id="export">Save the shelf to a file</button>
+      <button class="btn quiet" type="button" id="import">Open a shelf file</button>
+      <input type="file" id="import-file" accept=".json,application/json" hidden>
+    </div>
+  </section>
+
+  <aside class="open" id="open" aria-labelledby="open-title" hidden>
+    <div class="frame" id="frame"><img class="still" id="open-still" alt="" width="400" height="400"><iframe class="world" id="world" title="The planet, turning" tabindex="-1"></iframe></div>
+    <div class="card slip">
+      <button class="close" type="button" id="close" aria-label="Close the week">×</button>
+      <div class="card-head"><p class="when" id="open-when"></p><h2 id="open-title" tabindex="-1"></h2><p class="garmin" id="open-garmin" hidden></p><p class="body" id="open-body"></p></div>
+      <p class="why" id="open-why"></p>
+      <p class="nums" id="open-numbers"></p>
+      <ul class="notes" id="open-notes"></ul>
+      <div class="strava-credit" id="strava-credit" hidden>
+        <div class="strava-mark" id="strava-mark" role="img" aria-label="Powered by Strava"></div>
+        <p>Garmin-only sweat, training load, and anaerobic effect values are estimates.</p>
+      </div>
+      <div class="acts">
+        <a class="btn" id="land" href="../planet/ink.html">Land on it</a>
+        <a class="word" id="in-galaxy" href="../galaxy/">See it in the galaxy</a>
+        <a class="word" id="share" href="../story/">Share this planet</a>
+      </div>
+      <div class="more">
+        <button class="word" type="button" id="make-poster">Make the poster</button>
+        <button class="word" type="button" id="copy">Copy the link</button>
+        <button class="word" type="button" id="remove">Take it off the shelf</button>
+      </div>
+      <div class="step"><button class="word" type="button" id="prev"><span aria-hidden="true">‹ </span>Earlier</button><button class="word" type="button" id="next">Later<span aria-hidden="true"> ›</span></button></div>
+      <p class="status" id="open-status" role="status"></p>
+    </div>
+  </aside>
+</main>
+
+<dialog class="sheet" id="poster" aria-labelledby="poster-title">
+  <div class="sheet-in slip">
+    <div id="poster-sheet"></div>
+    <div class="sheet-text">
+      <h2 class="h2" id="poster-title">The poster</h2>
+      <p class="aside" id="poster-line"></p>
+      <div class="acts">
+        <a class="btn" id="poster-get" href="#" download>Download the PDF</a>
+        <button class="btn quiet" type="button" id="poster-close">Close</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<footer class="foot">
+  <span>Made by <a href="https://fleming.run/">Ryan Fleming</a>. The first planet was his marathon week.</span>
+  <span class="links"><a href="../how/">How a week turns into a planet</a><a href="../privacy/">Privacy</a><a href="../terms/">Terms</a><a href="https://github.com/rlfleming93/planetCreator">Source on GitHub</a></span>
+</footer>
+
+<script type="module">
+import { listPlanets, savePlanet, removePlanet, exportShelf, importShelf, getThumb, putThumb, codeOf } from '../lib/store.js';
+import { paint } from '../lib/paint.js';
+import { showWorld } from '../lib/world.js';
+import { MONTHS, count, when, nameOf, numbers, metric, poster, posterPDF } from '../lib/poster.js';
+import { galaxyOf } from '../galaxy/galaxy-data.js';
+import { decodePlanet, encodePlanet } from '../planet/share.js';
+import { garminLines, poweredSvg } from '../planet/strava-mark.js';
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+const wide = matchMedia('(min-width: 1100px)');
+const demo = new URLSearchParams(location.search).has('ryan');
+const still = new Map(); // link → its painted still, once there is one
+let planets = []; // the shelf on show, oldest week first
+let facts = new Map(); // week → the galaxy's reading of it (galaxy-data.js): its star's colour and its notes
+let open = null; // the week picked
+let chosen = false; // picked by hand (a phone shows the week only then; a wide screen always shows one)
+let only = 'all';
+
+$('strava-mark').innerHTML = poweredSvg;
+// a Strava or Garmin week's links keep its provenance: Strava's, and the Garmin devices that recorded it
+const sourceQuery = (p) => {
+  if (p.source !== 'strava' && p.source !== 'garmin') return '';
+  const q = new URLSearchParams({ source: p.source });
+  if (p.detail === 'summary') q.set('detail', 'summary');
+  for (const line of garminLines(p.garmin)) q.append('garmin', line);
+  return `?${q}`;
+};
+
+// ------------------------------------------------------------ words (the galaxy names the same weeks the same way)
+// what kind of thing a week is in space: shelf/_ryan.mjs keeps it on each of Ryan's weeks as the app's bodies name it
+const BODY = { rock: ['Rocky planet', 'Rocky planets'], marble: ['Marble', 'Marbles'], giant: ['Gas giant', 'Gas giants'], ice: ['Ice giant', 'Ice giants'], lava: ['Lava world', 'Lava worlds'], star: ['Crowned world', 'Crowned worlds'] };
+const utc = (week) => new Date(`${week}T00:00:00Z`);
+const thursday = (week) => new Date(+utc(week) + 3 * 864e5); // a week is its Thursday's month and year, as in the galaxy
+const one = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format;
+const dayOf = (week) => `${MONTHS[utc(week).getUTCMonth()].slice(0, 3)} ${utc(week).getUTCDate()}`;
+const brief = (s = {}) => [s.mi ? (metric ? `${one(s.mi * 1.609344)} km` : `${one(s.mi)} mi`) : '', s.min ? `${one(Math.round(s.min / 6) / 10)} h` : ''].filter(Boolean).join(' · ');
+const bodyOf = (p) => BODY[p.body]?.[0] || '';
+// the rule a body's weeks were drawn by: the first part of each week's own reason (bodies/*.js reason), before its numbers
+const ruleOf = (p) => p.why?.split(' This week: ')[0] || '';
+const notesOf = (p) => facts.get(p.week)?.notes || [];
+const raced = (p) => !!p.stats?.race;
+const raceOf = (p) => (typeof p.stats?.race === 'string' ? p.stats.race : 'a race');
+// a week's one line of character: its body, and the first thing it did (its race, a record, the comeback, a streak),
+// the note's own words up to its colon ("Most miles yet: farther than any week before" → "Most miles yet")
+const character = (p) => [bodyOf(p), notesOf(p)[0]?.[1].split(/[:,]/)[0]].filter(Boolean).join(' · ');
+const glowOf = (p) => (facts.get(p.week)?.color || [0.8, 0.78, 0.74]).map((v) => Math.round(v * 255)).join(' ');
+const FILTERS = [
+  ['all', 'All', () => true],
+  ['race', 'Races', raced],
+  ['record', 'Records', (p) => notesOf(p).some(([kind]) => kind === 'pulsar' || kind === 'cluster')],
+  ...Object.entries(BODY).map(([id, [single, many]]) => [id, [single, many], (p) => p.body === id]),
+];
+
+function say(text, action, fn, where = $('status')) {
+  where.textContent = text;
+  if (!action) return;
+  const b = Object.assign(document.createElement('button'), { type: 'button', className: 'btn quiet', textContent: action });
+  b.addEventListener('click', fn, { once: true });
+  where.append(b);
+}
+const el = (tag, className = '', text = '') => Object.assign(document.createElement(tag), { className, textContent: text });
+
+// ------------------------------------------------------------ a week, as a button
+function stillSet(img, p) {
+  if (demo) {
+    // the build's small thumbs (as the home page's beads use); the full still only for the week picked, or for a week
+    // the build hasn't made thumbs of yet
+    const at = (px) => `ryan/thumbs/${px}/${p.week}.webp?v=${p.rev}`;
+    Object.assign(img, { srcset: `${at(96)} 96w, ${at(192)} 192w`, sizes: '(min-width: 700px) 136px, 84px', src: at(192) });
+    img.addEventListener('error', () => { if (!img.dataset.full) { img.dataset.full = '1'; img.removeAttribute('srcset'); img.src = still.get(p.link); } }, { once: true });
+  } else if (still.has(p.link)) img.src = still.get(p.link);
+}
+function tile(p, most) {
+  const b = el('button', `wk${demo || still.has(p.link) ? '' : ' pending'}`);
+  b.type = 'button';
+  b.planet = p;
+  b.setAttribute('aria-pressed', String(p === open));
+  b.style.cssText = `--glow:${glowOf(p)};--k:${(0.62 + 0.38 * Math.sqrt((p.stats?.min || 0) / most)).toFixed(3)}`;
+  const img = Object.assign(new Image(192, 192), { alt: '', loading: 'lazy', decoding: 'async' });
+  stillSet(img, p);
+  const orb = el('span', 'orb');
+  orb.append(img);
+  b.append(orb, el('span', 'name', nameOf(p)), el('span', 'what', character(p)), el('span', 'when', `${dayOf(p.week)}${brief(p.stats) ? ` · ${brief(p.stats)}` : ''}`));
+  b.addEventListener('click', () => { pick(p, true); $('open-title').focus({ preventScroll: true }); }); // the reader goes with the week into its card
+  return b;
+}
+
+// ------------------------------------------------------------ the weeks: a year at a time, a month to a row, newest first
+function drawWeeks() {
+  const most = Math.max(1, ...planets.map((p) => p.stats?.min || 0));
+  const byYear = Map.groupBy([...planets].reverse(), (p) => thursday(p.week).getUTCFullYear());
+  $('weeks').replaceChildren(...[...byYear].map(([year, list], y) => {
+    const section = el('section', 'year');
+    section.style.setProperty('--yr', `var(--year-${y % 3})`);
+    section.append(el('h2', '', String(year)));
+    for (const [month, weeks] of Map.groupBy(list, (p) => thursday(p.week).getUTCMonth())) {
+      const block = Object.assign(el('section', 'month'), { id: `m-${year}-${month + 1}` });
+      const ol = el('ol');
+      ol.append(...weeks.reverse().map((p) => { const li = el('li'); li.append(tile(p, most)); return li; })); // in the order they were trained
+      block.append(el('h3', '', MONTHS[month]), ol);
+      section.append(block);
+    }
+    return section;
+  }));
+  $('weeks').dataset.state = planets.length ? 'some' : 'none';
+}
+
+// ------------------------------------------------------------ the filters: only the kinds this shelf has
+function drawFilters() {
+  const rows = FILTERS.map(([id, label, test]) => [id, label, planets.filter(test).length]).filter(([id, , n]) => id === 'all' || n);
+  if (!rows.some(([id]) => id === only)) only = 'all';
+  $('filters').replaceChildren(...(planets.length > 1 ? rows : []).map(([id, label, n]) => {
+    const b = el('button', 'pick', Array.isArray(label) ? label[n === 1 ? 0 : 1] : label);
+    b.type = 'button';
+    b.dataset.only = id;
+    b.setAttribute('aria-pressed', String(id === only));
+    b.append(el('b', '', String(n)));
+    b.addEventListener('click', () => filter(id));
+    return b;
+  }));
+}
+function filter(id) {
+  only = id;
+  const test = FILTERS.find(([key]) => key === id)[2];
+  for (const b of $('filters').children) b.setAttribute('aria-pressed', String(b.dataset.only === id));
+  $('rule').textContent = BODY[id] ? [...new Set(planets.filter(test).map(ruleOf).filter(Boolean))].join(' ') : '';
+  for (const b of $('weeks').querySelectorAll('.wk')) b.parentNode.hidden = !test(b.planet);
+  for (const m of $('weeks').querySelectorAll('.month, .year')) m.hidden = !m.querySelector('li:not([hidden])');
+  jumps();
+  // the week picked stays only while the filter shows it: else the first week shown takes its place in a wide
+  // screen's column, and a phone's sheet closes
+  if (!open || test(open)) return steps();
+  const first = $('weeks').querySelector('li:not([hidden]) .wk')?.planet;
+  if (wide.matches && first) return pick(first);
+  close();
+  open = null;
+  steps();
+}
+// the way to any month: the months on show, newest first, a year to a group
+function jumps() {
+  const groups = [...$('weeks').querySelectorAll('.year:not([hidden])')].map((y) => {
+    const group = Object.assign(document.createElement('optgroup'), { label: y.firstChild.textContent });
+    group.append(...[...y.querySelectorAll('.month:not([hidden])')].map((m) => new Option(`${m.firstChild.textContent} ${group.label}`, m.id)));
+    return group;
+  });
+  $('jump').replaceChildren(Object.assign(new Option('Jump to month', ''), { hidden: true }), ...groups);
+}
+$('jump').addEventListener('change', (e) => {
+  const to = document.getElementById(e.target.value);
+  e.target.selectedIndex = 0;
+  if (!to) return;
+  to.scrollIntoView({ block: 'start', behavior: reduced.matches ? 'auto' : 'smooth' });
+  to.querySelector('li:not([hidden]) .wk')?.focus({ preventScroll: true }); // the keyboard lands where the eye does
+});
+function steps() {
+  const list = shown(), at = list.indexOf(open);
+  $('prev').disabled = at <= 0;
+  $('next').disabled = at < 0 || at === list.length - 1;
+}
+const shown = () => [...$('weeks').querySelectorAll('li:not([hidden]) .wk')].map((b) => b.planet).sort((a, b) => a.week.localeCompare(b.week));
+
+// ------------------------------------------------------------ stills: Ryan's are painted already; yours are painted
+// here, one at a time, and kept (store.js) so each is painted once
+function show(p, url) {
+  still.set(p.link, url);
+  for (const b of document.querySelectorAll('.wk')) {
+    if (b.planet.link !== p.link) continue;
+    b.querySelector('img').src = url;
+    b.classList.remove('pending');
+  }
+  if (open?.link === p.link) $('open-still').src = url;
+}
+let painting = false;
+async function paintStills() {
+  if (painting || demo) return;
+  painting = true;
+  try {
+    for (const p of planets.filter((q) => !still.has(q.link))) {
+      const blob = await getThumb(p.link).catch(() => null);
+      if (blob) show(p, URL.createObjectURL(blob));
+    }
+    for (let p; (p = planets.find((q) => !still.has(q.link)));) {
+      await new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(r, { timeout: 2000 }) : setTimeout(r, 200)));
+      const canvas = await paint(p.link);
+      const blob = await new Promise((r) => canvas.toBlob(r, 'image/webp', 0.85));
+      await putThumb(p.link, blob).catch(() => {});
+      show(p, URL.createObjectURL(blob));
+    }
+  } catch {
+    say("This browser couldn't paint the planets (it needs WebGL), so their places are left empty.");
+  } finally {
+    painting = false;
+  }
+}
+
+// ------------------------------------------------------------ the week picked
+// The live planet (a whole app), on a wide screen only and never while the shelf itself is loading: once they've
+// stopped on a week they picked, or as soon as they point at the open one; a week the page opened by itself waits
+// for the page to go idle as well.
+let liveSoon, liveFor = null;
+const loaded = new Promise((resolve) => (document.readyState === 'complete' ? resolve() : addEventListener('load', resolve, { once: true })));
+const idle = () => new Promise((resolve) => (window.requestIdleCallback ? requestIdleCallback(resolve, { timeout: 3000 }) : setTimeout(resolve, 1000)));
+function goLive(p, dwell) {
+  clearTimeout(liveSoon);
+  if (!wide.matches) return;
+  liveSoon = setTimeout(async () => {
+    await loaded;
+    if (dwell == null) await idle();
+    if (open !== p || liveFor === p) return;
+    liveFor = p;
+    showWorld($('world'), codeOf(p.link)).then(() => { if (open === p) $('frame').classList.add('live'); }, () => { if (liveFor === p) liveFor = null; });
+  }, dwell ?? 0);
+}
+function pick(p, byHand = false) {
+  open = p;
+  chosen ||= byHand;
+  document.querySelectorAll('.wk').forEach((b) => b.setAttribute('aria-pressed', String(b.planet === p)));
+  $('open').hidden = !(chosen || wide.matches);
+  $('open').style.setProperty('--glow', glowOf(p));
+  $('open-when').textContent = `${when(p.week)}${p === planets.at(-1) ? ' · the latest week' : ''}`;
+  $('open-title').textContent = nameOf(p);
+  $('open-body').textContent = bodyOf(p);
+  $('open-why').replaceChildren(...(p.why ? [el('b', '', `Why ${/^[aeiou]/i.test(bodyOf(p)) ? 'an' : 'a'} ${bodyOf(p).toLowerCase()}: `), p.why[0].toLowerCase() + p.why.slice(1)] : []));
+  $('open-numbers').innerHTML = `${esc(numbers(p.stats))}${raced(p) && !notesOf(p).length ? ` · <span class="race">${esc(raceOf(p))}</span>` : ''}`;
+  $('open-notes').replaceChildren(...notesOf(p).map(([, text]) => el('li', '', text)));
+  const img = $('open-still');
+  if (demo) img.src = `ryan/${p.week}.webp?v=${p.rev}`;
+  else if (still.has(p.link)) img.src = still.get(p.link);
+  else img.removeAttribute('src');
+  $('land').href = `../planet/ink.html${sourceQuery(p)}#p=${codeOf(p.link)}`;
+  Object.assign($('in-galaxy'), demo ? { href: `../galaxy/#week=${p.week}`, textContent: 'See it in the galaxy' } : { href: `../galaxy/?mine#week=${p.week}`, textContent: 'See it in your galaxy' });
+  $('share').href = `../story/${sourceQuery(p)}#p=${encodePlanet(decodePlanet(codeOf(p.link)))}`; // a clip for a phone's share sheet, no names
+  $('remove').hidden = demo;
+  $('strava-credit').hidden = p.source !== 'strava' && p.source !== 'garmin';
+  $('strava-mark').hidden = p.source !== 'strava'; // a Garmin week came through Junction, with no Strava in it
+  $('open-garmin').textContent = p.source === 'strava' || p.source === 'garmin' ? garminLines(p.garmin).join(' · ') : '';
+  $('open-garmin').hidden = !$('open-garmin').textContent;
+  $('open-status').textContent = '';
+  steps();
+  $('frame').classList.remove('live');
+  $('world').removeAttribute('src');
+  liveFor = null;
+  if (byHand) history.replaceState(null, '', `${location.pathname}${location.search}#${p.week}`);
+  goLive(p, byHand ? 650 : null);
+}
+$('open').addEventListener('pointerenter', () => { if (open) goLive(open, 0); });
+// the sheet closes (a phone; a wide screen's column always shows a week), and the reader goes back to the week
+function close() {
+  if (!chosen) return;
+  chosen = false;
+  clearTimeout(liveSoon);
+  const back = $('open').contains(document.activeElement) && [...document.querySelectorAll('.wk')].find((b) => b.planet === open);
+  if (!wide.matches) {
+    $('world').removeAttribute('src');
+    liveFor = null;
+    $('open').hidden = true;
+    document.querySelectorAll('.wk').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+    history.replaceState(null, '', `${location.pathname}${location.search}`);
+  }
+  if (back) back.focus();
+}
+function step(by) {
+  const list = shown(), next = list[list.indexOf(open) + by];
+  if (!next) return;
+  pick(next, true);
+  document.querySelector(`.wk[aria-pressed="true"]`)?.scrollIntoView({ block: 'nearest', behavior: reduced.matches ? 'auto' : 'smooth' });
+  if ($(by < 0 ? 'prev' : 'next').disabled) $('open-title').focus({ preventScroll: true }); // the end: focus stays in the card
+}
+$('close').addEventListener('click', close);
+$('prev').addEventListener('click', () => step(-1));
+$('next').addEventListener('click', () => step(1));
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('poster').open) close(); });
+wide.addEventListener('change', () => { if (open) pick(open); });
+
+$('copy').addEventListener('click', async () => {
+  // a link to share leaves the names behind (a kept planet can carry them: it never left this browser)
+  const link = new URL(`../planet/ink.html${sourceQuery(open)}#p=${encodePlanet(decodePlanet(codeOf(open.link)))}`, location.href).href;
+  try {
+    await navigator.clipboard.writeText(link);
+    say('Copied the link. Whoever opens it gets the planet to walk on.', null, null, $('open-status'));
+  } catch {
+    say(link, null, null, $('open-status'));
+  }
+});
+
+$('remove').addEventListener('click', async () => {
+  const p = open;
+  await removePlanet(p.id);
+  close();
+  await load();
+  say(`Took the week of ${when(p.week)} off the shelf.`, 'Put it back', async () => { await savePlanet(p); await load(); say(''); });
+});
+
+// ------------------------------------------------------------ the poster
+let posterURL;
+$('make-poster').addEventListener('click', async () => {
+  const p = open, button = $('make-poster');
+  button.disabled = true;
+  say('Painting it at print size. This takes a few seconds.', null, null, $('open-status'));
+  try {
+    const sheet = await poster(p);
+    const pdf = await posterPDF(sheet);
+    if (posterURL) URL.revokeObjectURL(posterURL);
+    posterURL = URL.createObjectURL(pdf);
+    $('poster-sheet').replaceChildren(sheet);
+    $('poster-line').textContent = `A3 at 300 dots to the inch, ${sheet.width.toLocaleString('en-US')} by ${sheet.height.toLocaleString('en-US')} pixels. The planet on it is painted by the same app you walk on, just bigger. The PDF is ${(pdf.size / 1e6).toFixed(1)} MB.`;
+    Object.assign($('poster-get'), { href: posterURL, download: `planet-${p.week}-a3.pdf` });
+    say('', null, null, $('open-status'));
+    $('poster').showModal();
+  } catch (error) {
+    say(`The poster didn't paint: ${error.message}`, null, null, $('open-status'));
+  } finally {
+    button.disabled = false;
+  }
+});
+$('poster-close').addEventListener('click', () => $('poster').close());
+$('poster').addEventListener('close', () => $('poster-sheet').replaceChildren());
+
+// ------------------------------------------------------------ keeping a copy
+$('export').addEventListener('click', async () => {
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(await exportShelf()), download: `planet-shelf-${new Date().toISOString().slice(0, 10)}.json` });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  say(`Saved ${count(planets.length, 'planet')} to ${a.download}.`);
+});
+$('import').addEventListener('click', () => $('import-file').click());
+$('import-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const added = await importShelf(file);
+    await load();
+    say(added ? `Added ${count(added, 'planet')} from ${file.name}.` : `Nothing new in ${file.name}. Every week in it is on your shelf already.`);
+  } catch (error) {
+    say(error.message);
+  }
+});
+
+// ------------------------------------------------------------ the shelf on show
+async function load() {
+  if (demo) {
+    planets = await (await fetch('ryan.json')).json();
+    for (const p of planets) still.set(p.link, `ryan/${p.week}.webp?v=${p.rev}`); // image hash: every repaint is a new URL
+  } else {
+    try {
+      planets = await listPlanets();
+    } catch {
+      planets = [];
+      say("This browser won't keep anything for this site (its storage is switched off), so there's no shelf here.");
+    }
+  }
+  facts = new Map((galaxyOf(planets)?.weeks || []).map((w) => [w.week, w]));
+  if (open && !planets.includes(open)) open = planets.find((p) => p.week === open.week) || null;
+  drawWeeks();
+  drawFilters();
+  $('bar').hidden = planets.length < 2;
+  filter(only);
+  words();
+  paintStills();
+  if (open) pick(open);
+  else if (wide.matches && planets.length) pick(planets.at(-1));
+  else $('open').hidden = true;
+}
+// your own shelf's words (Ryan's head is settled in the page itself, before it is drawn)
+function words() {
+  const n = planets.length;
+  $('keep').hidden = demo;
+  $('export').hidden = !n;
+  if (demo) return;
+  $('lede').textContent = !n
+    ? 'Nothing here yet. When you make a planet from one of your weeks and keep it, it lands here, with its month.'
+    : `${n === 1 ? "You've kept one week." : `You've kept ${n} weeks.`} Each planet is painted in this browser, sized by the hours you trained.`;
+  // the head's one button: your galaxy once there's a week in it, else the way to make one
+  const [text, href, className] = n ? ['Open your galaxy', '../galaxy/?mine', 'btn quiet'] : ['Make one from your week', '../make/', 'btn'];
+  const button = $('starts').querySelector('.btn');
+  if (button?.textContent !== text) {
+    button?.remove();
+    $('starts').prepend(Object.assign(document.createElement('a'), { href, textContent: text, className }));
+  }
+}
+
+await load();
+const deep = planets.find((p) => p.week === decodeURIComponent(location.hash.slice(1)));
+if (deep) {
+  pick(deep, true);
+  document.querySelector('.wk[aria-pressed="true"]')?.scrollIntoView({ block: 'center' });
+}
+</script>
+</body>
+</html>

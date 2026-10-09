@@ -1,0 +1,125 @@
+/* Planet Creator's own sheet: the night (lib/space.css's tokens, linked just before this) laid out for every page.
+   A book serif in the paper's cream on deep indigo, words written with a brush stroke under them, slips of paper
+   torn off the block and laid a touch askew, one vermilion patch to press. No pills, no boxes, no shadows.
+   Every page links space.css, then this, and adds its own layout in a <style> of its own. */
+
+/* What the words are written in where they stand: the night's cream, or the ink on a slip of paper. Everything
+   below reads these, so a word, a link or a quiet line laid on a slip turns to ink by itself. */
+:root {
+  --fg: var(--cream);
+  --fg-soft: var(--cream-soft);
+  --fg-quiet: var(--cream-quiet);
+  --hot: var(--ember);          /* a word under the pointer */
+  --mark: var(--vermilion-lit); /* the vermilion as a word or a mark: the page you're on, a race */
+  --line: var(--cream-rule);
+  --line-faint: var(--cream-faint);
+  --loop: var(--night-loop);
+}
+.slip, .paper {
+  --fg: var(--ink);
+  --fg-soft: var(--ink-soft);
+  --fg-quiet: var(--ink-soft);
+  --hot: var(--accent);
+  --mark: var(--accent);
+  --line: var(--rule);
+  --line-faint: var(--faint);
+  --loop: var(--ink-loop);
+  color: var(--fg);
+}
+
+* { box-sizing: border-box; }
+html {
+  background: var(--night);
+  color: var(--fg);
+  scrollbar-color: rgba(239, 230, 210, .3) var(--night);
+  -webkit-text-size-adjust: 100%;
+}
+/* the sky, fixed behind the page on a layer of its own, so scrolling never repaints it (the galaxy's canvas covers it) */
+html::before {
+  content: ""; position: fixed; left: 0; top: 0; z-index: -1; width: 100%; height: 100vh; height: 100lvh; pointer-events: none;
+  background: var(--sky-glints) 0 0 / 1270px 1270px, var(--sky-stars) 0 0 / 560px 560px, var(--sky-grain) 0 0 / 240px 240px,
+    var(--sky-mottle) 0 0 / 720px 720px, var(--sky-wash), var(--night);
+}
+body { margin: 0; font: 17px/1.55 var(--font); font-variant-numeric: lining-nums proportional-nums; -webkit-font-smoothing: antialiased; }
+::selection { background: rgba(232, 122, 94, .32); color: var(--cream); }
+.slip ::selection, .paper ::selection { background: rgba(176, 64, 42, .22); color: var(--ink); }
+:focus-visible { outline: 1px dashed var(--hot); outline-offset: 4px; }
+input, textarea { caret-color: var(--mark); }
+h1, h2, h3, p, ul, ol, dl, dd, figure { margin: 0; }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: .22em; text-decoration-color: var(--line); }
+a:hover { color: var(--hot); text-decoration-color: currentColor; }
+button { font: inherit; color: inherit; }
+code { font-size: .9em; color: var(--fg-soft); }
+[hidden] { display: none !important; }
+.num { font-variant-numeric: lining-nums tabular-nums; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---------------------------------------------------------------- lettering */
+.title { font-weight: 400; font-size: clamp(38px, 5.4vw, 78px); line-height: 1; letter-spacing: -.028em; text-wrap: balance; filter: url(#pc-ink); }
+.lede { max-width: 58ch; font-size: clamp(17px, 1.35vw, 19.5px); line-height: 1.55; color: var(--fg-soft); text-wrap: pretty; }
+.aside { font-style: italic; font-size: 14.5px; line-height: 1.5; color: var(--fg-quiet); }
+.h2 { font-weight: 400; font-size: clamp(28px, 3vw, 40px); line-height: 1.05; letter-spacing: -.02em; text-wrap: balance; }
+.h3 { font-weight: 600; font-size: 13px; letter-spacing: .2em; text-transform: uppercase; }
+
+/* a word to press: serif, with one brush mark under it */
+.word { appearance: none; position: relative; display: inline-block; border: 0; border-radius: 0; background: none; padding: 2px 0 8px; color: var(--fg); font: 600 14.5px/1.3 var(--font); letter-spacing: .045em; text-decoration: none; cursor: pointer; }
+.word::after { content: ""; position: absolute; left: -3px; right: -5px; bottom: 0; height: 5px; background: currentColor; opacity: .58; -webkit-mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; transform: rotate(-.6deg); transform-origin: 0 100%; }
+.word:hover, .word:focus-visible { color: var(--hot); }
+.word:hover::after { opacity: .9; }
+.word.go { color: var(--mark); font-size: 17px; }
+.word:disabled { cursor: default; opacity: .38; }
+.word:disabled::after { opacity: .2; }
+
+/* a button, painted on (see --btn): the one thing on a page to press is a patch of vermilion with the words in paper;
+   .quiet is the second things, a patch of slip paper drawn round in ink, a tab of paper on the night. Links stay
+   plain underlined words. */
+.btn { appearance: none; display: inline-flex; align-items: center; justify-content: center; gap: .45em; min-height: 46px; padding: 11px 26px 12px; border: 0; border-radius: 0; background: var(--btn) center / 100% 100% no-repeat; color: var(--slip-paper); font: 600 15.5px/1.2 var(--font); letter-spacing: .03em; text-decoration: none; cursor: pointer; transform: rotate(-.4deg); transition: transform .2s var(--ease-out); }
+.btn:hover, .btn:focus-visible { background-image: var(--btn-hover); color: var(--slip-paper); transform: rotate(0) translateY(-1px); }
+.btn:active { transform: translateY(1px); }
+.btn.quiet { background-image: var(--btn-quiet); color: var(--ink); transform: rotate(.3deg); }
+.btn.quiet:hover, .btn.quiet:focus-visible { background-image: var(--btn-quiet); color: var(--accent); }
+.btn:disabled { cursor: default; opacity: .45; }
+.btn:focus-visible { outline-offset: 4px; }
+
+/* a slip of paper torn off the block, opaque over the night */
+.slip { background: var(--slip-whole) center / 100% 100% no-repeat; padding: 28px 30px 26px; }
+
+/* --------------------------------------------------------------------- chrome */
+/* the same words at the head of every page; the name in the corner holds still while a page changes */
+.top { position: relative; z-index: 5; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 28px; padding: 18px var(--edge) 0; }
+.brand { font-size: 19px; font-weight: 500; letter-spacing: -.01em; text-decoration: none; view-transition-name: brand; }
+.trail { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: 0; padding: 0; list-style: none; }
+.trail a { font-size: 14px; }
+.trail a[aria-current="page"] { color: var(--mark); }
+/* while a page changes, its main part dims away and the next page's rises (space.css) */
+html:active-view-transition main { view-transition-name: page; }
+
+/* a planet from the real app: live (an iframe on the app itself) or a still painted by it, feathered into the night */
+.world { display: block; width: 100%; height: 100%; border: 0; background: transparent; -webkit-mask: radial-gradient(closest-side, #000 80%, transparent 97%); mask: radial-gradient(closest-side, #000 80%, transparent 97%); }
+.still { display: block; width: 100%; height: auto; -webkit-mask: radial-gradient(closest-side, #000 91%, transparent 100%); mask: radial-gradient(closest-side, #000 91%, transparent 100%); }
+
+.foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 28px; margin-top: 72px; padding: 22px var(--edge) calc(30px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line-faint); font-size: 14px; font-style: italic; color: var(--fg-quiet); }
+.foot .links { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+
+@media (max-width: 700px) {
+  body { font-size: 16px; }
+  .trail { gap: 2px 12px; } /* the four words keep one line on a phone */
+  .trail a { letter-spacing: .025em; }
+}
+@media (max-width: 374px) {
+  .trail a { font-size: 13px; }
+}
+/* a finger gets a 44 px target on every way round the site, the words staying where they are: each link's hit area
+   grows round it, and the rows of the nav and the foot part a little more, so no two targets overlap */
+@media (pointer: coarse) {
+  .top, .trail { row-gap: 16px; }
+  .foot, .foot .links { row-gap: 24px; }
+  .brand, .foot a { position: relative; }
+  .brand::before, .trail a::before, .foot a::before { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); translate: -50% -50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
+@media print {
+  html::before { display: none; }
+}

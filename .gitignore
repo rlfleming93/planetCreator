@@ -1,0 +1,29 @@
+node_modules/
+var/
+.wrangler/
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Build output (regenerable)
+dist/
+**/dist/
+
+# Python
+__pycache__/
+*.pyc
+
+# The planet's real weeks name the towns their runs started in: they stay in var/private/planet, and
+# scripts/dev.sh links them in here. Only the synthetic weeks are tracked.
+apps/planet/seed-week.js
+apps/planet/seeds/*
+!apps/planet/seeds/synthetic-*.js
+
+# The phone kit's clips and their kit.json are made by scripts/story-render.mjs (every new session, every week's end)
+# and go out with the deploy; only the kit's page, manifest and icon are tracked.
+apps/planet-home/kit/kit.json
+apps/planet-home/kit/media/
+# The demo film's encodes (about 60 MB) come from var/private/planet-demo/round12/site-media.sh and go out with the
+# deploy from this working tree, as the kit's clips do.
+apps/planet-home/demo/media/

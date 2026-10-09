@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0d20">
+<meta name="color-scheme" content="dark">
+<title>Planet Creator — ink</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23efe6d2' stroke='%231b2540' stroke-width='1.5'/%3E%3C/svg%3E">
+<script>
+  // set before anything is drawn: in the galaxy (?embed=1) the planet shows bare, with none of the page's own words
+  // (base.js sets the same class); in any frame (the site's pages show it in one) the site's words are left off
+  { const c = document.documentElement.classList; if (new URLSearchParams(location.search).get('embed') === '1') c.add('embed'); if (self !== top) c.add('framed'); }
+</script>
+<style>
+  /* The base reads these vars for the HUD + field guide: a field guide's slips of paper laid over the night. The
+     night's own values are the site's (apps/planet-home/lib/space.css), repeated here because the app also ships on
+     its own and can't load the site's sheet; keep the two in step. */
+  :root {
+    --fg-bg: rgba(243, 236, 220, .94);
+    --fg-ink: #242a3c;
+    --fg-accent: #b8442a;
+    --fg-font: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --ink-rule: rgba(36, 42, 60, .34);
+    --ink-faint: rgba(36, 42, 60, .14);
+    /* a brush stroke laid under a word: loaded at the start, lifting off at the end */
+    --ink-stroke: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 8' preserveAspectRatio='none'%3E%3Cpath d='M0.5 4.7 C 9 3.1, 27 3.2, 46 3.6 S 81 3.5, 99.5 4.2 C 84 4.9, 63 5.5, 42 5.4 S 10 5.8, 0.5 4.7 Z'/%3E%3C/svg%3E");
+    /* the same stroke, already in the ink, to lay under a name as a background */
+    --ink-underline: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 8' preserveAspectRatio='none'%3E%3Cpath fill='%23242a3c' fill-opacity='0.5' d='M0.5 4.7 C 9 3.1, 27 3.2, 46 3.6 S 81 3.5, 99.5 4.2 C 84 4.9, 63 5.5, 42 5.4 S 10 5.8, 0.5 4.7 Z'/%3E%3C/svg%3E");
+    /* a slip of the same paper torn off the block: its edge is the nav patch's
+       tear at the patch's own scale, laid on as a nine-slice so a slip of any
+       size keeps it */
+    --ink-slip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Cfilter id='t' x='-5%25' y='-5%25' width='110%25' height='110%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.045' numOctaves='4' seed='3'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='11'/%3E%3C/filter%3E%3Crect filter='url(%23t)' x='12' y='12' width='376' height='376' fill='%23f3ecdc' fill-opacity='0.95'/%3E%3C/svg%3E");
+    /* the lighter patch of paper a painter keeps for the lettering */
+    --ink-patch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-10%25' y='-30%25' width='120%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.045' numOctaves='3' seed='5'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='10'/%3E%3C/filter%3E%3Cpath filter='url(%23r)' fill='%23f3ecdc' fill-opacity='0.6' d='M10 16 C 44 5, 150 6, 188 12 C 199 24, 196 46, 180 52 C 130 58, 52 57, 18 50 C 5 43, 3 25, 10 16 Z'/%3E%3C/svg%3E");
+    /* the same patch, near opaque, under a name written over the night */
+    --label-patch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-10%25' y='-30%25' width='120%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.045' numOctaves='3' seed='5'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='10'/%3E%3C/filter%3E%3Cpath filter='url(%23r)' fill='%23f3ecdc' fill-opacity='0.92' d='M10 16 C 44 5, 150 6, 188 12 C 199 24, 196 46, 180 52 C 130 58, 52 57, 18 50 C 5 43, 3 25, 10 16 Z'/%3E%3C/svg%3E");
+    /* the night, the words written on it, and a patch of it laid under words that sit over the painting */
+    --night: #0a0d20;
+    --cream: #efe6d2;
+    --cream-quiet: #b3ad9c;
+    --ember: #f0b39f;
+    --vermilion-lit: #e87a5e;
+    --night-patch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-10%25' y='-30%25' width='120%25' height='160%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.045' numOctaves='3' seed='5'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='10'/%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpath filter='url(%23r)' fill='%230a0d20' fill-opacity='0.74' d='M10 16 C 44 5, 150 6, 188 12 C 199 24, 196 46, 180 52 C 130 58, 52 57, 18 50 C 5 43, 3 25, 10 16 Z'/%3E%3C/svg%3E");
+    /* the slip laid whole, opaque (a nine-slice shows its seams over the dark) */
+    --slip-whole: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400' preserveAspectRatio='none'%3E%3Cfilter id='t' x='-5%25' y='-5%25' width='110%25' height='110%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.045' numOctaves='4' seed='3'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='11'/%3E%3C/filter%3E%3Crect filter='url(%23t)' x='12' y='12' width='376' height='376' fill='%23f3ecdc'/%3E%3C/svg%3E");
+    color-scheme: dark;
+  }
+  /* the page changes to and from the site's pages as they change among themselves: a cross-fade, the name holding still */
+  @view-transition { navigation: auto; }
+  html, body { margin: 0; height: 100%; background: var(--night); overflow: hidden; }
+  #spike { position: fixed; inset: 0; }
+  .strava-credit {
+    position: fixed; top: 16px; right: 18px; z-index: 10; width: min(270px, calc(100vw - 36px));
+    box-sizing: border-box; display: grid; justify-items: end; gap: 5px; padding: 10px 12px;
+    background: var(--label-patch) center / 100% 100% no-repeat; color: var(--fg-ink); pointer-events: none;
+    font: italic 11px/1.3 var(--fg-font); text-align: right;
+    text-shadow: 0 0 .55px color-mix(in srgb, var(--fg-ink) 42%, transparent);
+  }
+  .strava-credit svg { display: block; width: min(100%, 220px); height: auto; }
+  .strava-credit p { margin: 0; max-width: 250px; }
+
+  /* Everything the base injects is written by hand: no pills, no boxes, no shadows. The controls are words in the
+     paper's cream, each on one brush stroke, laid on a soft patch of the night so they read over any ground the
+     camera puts behind them; what you open (the field guide, the E card) is a slip of paper in ink.
+     (Selectors carry `html ` on purpose: the base's own sheet lands in the head
+     after this one, so equal specificity would hand the pills back.) */
+
+  html .pc-hud { gap: 20px; align-items: baseline; left: 24px; bottom: 20px; }
+  html .pc-hud::before {
+    content: ""; position: absolute; left: -24px; right: -28px; top: -16px; bottom: -14px; z-index: -1;
+    background: var(--night-patch) center / 100% 100% no-repeat;
+  }
+  html .pc-hud button {
+    appearance: none; position: relative; border: 0; border-radius: 0;
+    background: none; padding: 1px 0 6px; color: var(--cream);
+    font: 13px/1.1 var(--fg-font); letter-spacing: .07em; cursor: pointer;
+    /* written, not printed: the edges of the letters are not quite true, and no two words sit quite level */
+    filter: url(#pc-ink);
+    transform: rotate(-.3deg);
+  }
+  html .pc-hud button:nth-child(2) { transform: rotate(.25deg); }
+  html .pc-hud button:nth-child(3) { transform: rotate(-.15deg); }
+  /* the stroke the words sit on: one brush mark, not a rule */
+  html .pc-hud button::after {
+    content: ""; position: absolute; left: -3px; right: -5px; bottom: 0; height: 5px;
+    background: currentColor; opacity: .62;
+    -webkit-mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat;
+    transform: rotate(-0.7deg); transform-origin: 0 100%;
+  }
+  html .pc-hud button:nth-child(2)::after { transform: rotate(.5deg) scaleX(-1); transform-origin: 50% 100%; }
+  html .pc-hud button:hover, html .pc-hud button:focus-visible { color: var(--ember); }
+  html .pc-hud button:hover::after, html .pc-hud button:focus-visible::after { opacity: .9; }
+  html .pc-hud button:focus-visible { outline: 1px dashed var(--ember); outline-offset: 3px; }
+  /* the keys, said once in the margin's voice, then gone */
+  html .pc-hint { border: 0; border-radius: 0; background: none; padding: 0; color: var(--cream-quiet); font: italic 12px/1.3 var(--fg-font); letter-spacing: .02em; }
+  html .pc-hud .pc-maker-share-label { color: var(--cream); }
+  html .pc-hud .pc-maker-share-label input { accent-color: var(--ember); }
+  /* on a touch screen each control is a fingertip tall (44 px), its stroke still under its word, the rows touching
+     but never overlapping, and the whole HUD kept clear of the screen's edges */
+  @media (pointer: coarse) {
+    html .pc-hud { gap: 0 20px; left: 22px; bottom: 16px; }
+    html .pc-hud button { box-sizing: border-box; min-height: 44px; padding: 14px 2px 15px; }
+    html .pc-hud button::after { bottom: 9px; }
+    html .pc-hud .pc-maker-share-label { box-sizing: border-box; min-height: 44px; }
+    /* the card Inspect opens closes under a fingertip too */
+    html .pc-info .pc-info-close { right: 0; top: 2px; min-width: 44px; min-height: 44px; }
+  }
+  /* On foot on a touch screen (base.js shows them only there): the thumb stick where the left thumb lands, a ring
+     drawn in the paper's cream on a soft patch of the night with the thumb's own dab of cream in it; and under the
+     right thumb two words, each on its own patch of the night as the HUD's are: Jump, and Inspect while a landmark is
+     near enough to ask about, its stroke in the lit red. The HUD keeps to the left of them (base.js). */
+  html .pc-stick {
+    border: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cfilter id='r' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.07' numOctaves='2' seed='4'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='3.5'/%3E%3C/filter%3E%3Ccircle filter='url(%23r)' cx='50' cy='50' r='45' fill='none' stroke='%23efe6d2' stroke-opacity='.6' stroke-width='1.5'/%3E%3C/svg%3E") center / 100% 100% no-repeat,
+      radial-gradient(closest-side, rgba(10, 13, 32, .44), rgba(10, 13, 32, .3) 68%, transparent);
+  }
+  html .pc-knob {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cfilter id='d' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.06' numOctaves='3' seed='9'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='9'/%3E%3CfeGaussianBlur stdDeviation='0.8'/%3E%3C/filter%3E%3Ccircle filter='url(%23d)' cx='50' cy='50' r='40' fill='%23efe6d2' fill-opacity='.88'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  }
+  html .pc-hud .pc-touch button { right: 20px; padding: 18px 22px 19px; font-size: 14.5px; }
+  html .pc-hud .pc-jump { bottom: 22px; }
+  html .pc-hud .pc-inspect { bottom: 94px; }
+  html .pc-hud .pc-touch button::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background: var(--night-patch) center / 100% 100% no-repeat;
+  }
+  html .pc-hud .pc-touch button::after { left: 19px; right: 17px; bottom: 13px; }
+  html .pc-hud .pc-inspect::after { background: var(--vermilion-lit); opacity: .9; }
+  html .pc-hud .pc-touch button:hover { color: var(--cream); }
+  html .pc-hud .pc-touch button:active { color: var(--ember); }
+
+  /* the field guide and the E card are one kind of thing: a slip of the same
+     paper torn off the block and laid on the sheet a touch askew — no glass, no
+     box, no shadow — lettered like a museum label. Both are laid low, over the
+     ground, so the sky and its cloud stay clear: the guide just above the strip
+     it is opened from, the card at the right. */
+  html .pc-guide, html .pc-info {
+    border: 0; border-radius: 0; background: var(--slip-whole) center / 100% 100% no-repeat; backdrop-filter: none; box-shadow: none;
+    color: var(--fg-ink);
+  }
+  html .pc-guide {
+    left: 18px; top: auto; bottom: 62px; padding: 24px 28px 20px 26px;
+    font: 12.5px/1.5 var(--fg-font);
+    transform: rotate(-.25deg);
+  }
+  html .pc-info {
+    top: auto; right: 18px; bottom: 16px; width: min(360px, calc(100vw - 36px));
+    max-height: calc(100vh - 150px); padding: 26px 30px 22px 28px;
+    font: 11.5px/1.42 var(--fg-font);
+    transform: rotate(.2deg);
+  }
+  html .pc-guide h2 {
+    margin: 0 0 10px; font-size: 12px; font-weight: 500; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--fg-ink);
+  }
+  /* the guide is lettered on the same sheet as everything else, in the same ink */
+  html .pc-guide, html .pc-guide h2, html .pc-label, html .pc-detail {
+    text-shadow: 0 0 .55px color-mix(in srgb, var(--fg-ink) 42%, transparent);
+  }
+  html .pc-guide h2, html .pc-guide .pc-label { filter: url(#pc-ink); }
+  /* the swash under each slip's heading: one loaded stroke of the race's red */
+  html .pc-guide h2::after, html .pc-info h2::after {
+    content: ""; display: block; height: 6px; margin: 5px 30% 0 -2px;
+    background: var(--fg-accent);
+    -webkit-mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat;
+    transform: rotate(-0.35deg); transform-origin: 0 50%;
+  }
+  html .pc-guide ul { margin: 0; padding: 0; list-style: none; }
+  html .pc-guide li { padding: 7px 0 6px; border-top: 1px solid var(--ink-faint); cursor: pointer; }
+  html .pc-guide li:first-child { border-top: 0; }
+  html .pc-guide li:hover .pc-label,
+  html .pc-guide li[data-active] .pc-label { color: var(--fg-accent); }
+  html .pc-label { font-size: 13px; font-weight: 500; letter-spacing: .02em; }
+  html .pc-detail { opacity: .58; font-style: italic; }
+
+  /* the card, lettered as a museum label: the name in the race's red, a line of
+     italic particulars, then the measures under letter-spaced captions with the
+     other unit set small after them, and what each one made of the world */
+  html .pc-info h2 { margin: 0 26px 6px 0; font-size: 16px; font-weight: 500; line-height: 1.22; letter-spacing: .01em; text-wrap: balance; filter: url(#pc-ink); }
+  html .pc-info h2::after { margin-top: 6px; margin-right: 45%; }
+  html .pc-info .pc-info-detail { margin: 0 0 10px; font-style: italic; opacity: .7; }
+  html .pc-info, html .pc-info h2 { text-shadow: 0 0 .55px color-mix(in srgb, var(--fg-ink) 42%, transparent); }
+  html .pc-info table { margin: 0 0 2px; }
+  html .pc-info th, html .pc-info td { padding: 4px 0 3px; border-top: 1px solid var(--ink-faint); }
+  html .pc-info th { font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; opacity: .62; }
+  html .pc-info td { font-variant-numeric: lining-nums tabular-nums; }
+  html .pc-info small { display: inline; margin-left: 7px; font-size: 10px; font-style: italic; opacity: .6; }
+  html .pc-info ul { margin: 12px 0 0; padding: 11px 0 0; list-style: none; border-top: 1px solid var(--ink-rule); }
+  html .pc-info li { position: relative; padding-left: 17px; font-style: italic; line-height: 1.42; }
+  html .pc-info li::before {
+    content: ""; position: absolute; left: 0; top: .62em; width: 10px; height: 3px;
+    background: var(--fg-accent);
+    -webkit-mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat;
+  }
+  html .pc-info .pc-info-close { right: 16px; top: 14px; color: var(--fg-ink); opacity: .6; font: 19px/1 var(--fg-font); }
+  html .pc-info .pc-info-close:hover, html .pc-info .pc-info-close:focus-visible { color: var(--fg-accent); opacity: 1; }
+
+  /* why the week is the body it is (base.js, on a star, giant, ice, lava or marble week): a small slip of the same
+     paper, laid low at the right as the planet arrives and gone a few seconds later; the field guide keeps it. In a
+     frame or the galaxy the host page's card says it instead. */
+  html .pc-why {
+    right: 20px; bottom: 20px; width: min(292px, calc(100vw - 40px)); padding: 18px 22px 16px 20px;
+    border: 0; border-radius: 0; background: var(--slip-whole) center / 100% 100% no-repeat;
+    color: var(--fg-ink); font: italic 13px/1.42 var(--fg-font); transform: rotate(-.35deg);
+    text-shadow: 0 0 .55px color-mix(in srgb, var(--fg-ink) 42%, transparent);
+  }
+  html .pc-why b { margin-bottom: 7px; font: normal 500 11px/1.2 var(--fg-font); letter-spacing: .2em; color: var(--fg-ink); filter: url(#pc-ink); }
+  html .pc-why b::after {
+    content: ""; display: block; height: 5px; margin: 5px 40% 0 -2px; background: var(--fg-accent);
+    -webkit-mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat;
+  }
+  html.framed .pc-why { display: none; }
+  /* on a phone the foot is the HUD's (and grows with it), so the slip hangs under the site's words instead */
+  @media (max-width: 600px) {
+    html .pc-why { left: 16px; right: 16px; top: 84px; bottom: auto; width: auto; }
+    html:has(.strava-credit) .pc-why { top: 176px; }
+  }
+
+  /* a name written just above the thing it names, with a hairline down to its
+     top — never over the thing, never over the figure. The letters are written
+     on the same paper as everything else — a little bleed, a baseline that is
+     not quite level, a brush stroke under them — and ink-objects.js places the
+     name (--ink-dx/--ink-dy) and its hairline (--ink-hx/--ink-hl/--ink-ha)
+     every frame; until it does, the name hangs over base.js's own anchor. */
+  html .pc-near {
+    transform: translate(var(--ink-dx, -50%), var(--ink-dy, calc(-100% - 16px))) rotate(-.45deg);
+    text-align: left; white-space: nowrap;
+    padding: 3px 9px 9px 8px; border: 0; border-radius: 0;
+    background: var(--ink-underline) 5px calc(100% - 3px) / calc(100% - 11px) 5px no-repeat,
+      var(--label-patch) center / 100% 100% no-repeat;
+    color: var(--fg-ink); font: italic 12.5px/1.15 var(--fg-font); letter-spacing: .05em;
+    text-shadow: 0 0 .6px color-mix(in srgb, var(--fg-ink) 62%, transparent),
+      .4px .5px .6px color-mix(in srgb, var(--fg-ink) 20%, transparent);
+    filter: url(#pc-ink);
+  }
+  html .pc-near:nth-child(even) {
+    transform: translate(var(--ink-dx, -50%), var(--ink-dy, calc(-100% - 16px))) rotate(.3deg);
+  }
+  /* the hairline: one pen line from the foot of the name to the thing's top */
+  html .pc-near::before {
+    content: ""; position: absolute; left: var(--ink-hx, 50%); top: calc(100% - 3px);
+    width: 1px; height: var(--ink-hl, 16px); background: currentColor; opacity: .55;
+    transform: rotate(var(--ink-ha, 0rad)); transform-origin: 50% 0;
+  }
+  /* E, where the thing can be asked about: a key set beside its name; on a touch screen, which has Inspect instead,
+     the name's stroke in the red */
+  html .pc-near.can-interact::after {
+    content: "E"; display: inline-block; margin-left: 8px; padding-left: 7px;
+    border-left: 1px solid var(--ink-rule); color: var(--fg-accent);
+    font: normal 600 10.5px/1 var(--fg-font); letter-spacing: .06em;
+  }
+  @media (pointer: coarse) {
+    html .pc-near.can-interact::after {
+      content: ""; position: absolute; left: 5px; right: 6px; bottom: 3px; height: 5px; margin: 0; padding: 0; border: 0;
+      background: var(--fg-accent);
+      -webkit-mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat;
+    }
+  }
+  html .pc-near.on { opacity: .94; }
+
+  /* the off-screen bearing: a vermilion tick, as on a chart */
+  html .pc-arrow { border-left-width: 6px; border-right-width: 6px; border-bottom-width: 16px; }
+  html .pc-arrow.on { opacity: .62; }
+  html .pc-arrow b {
+    font: italic 12px var(--fg-font); font-weight: 400; letter-spacing: .04em;
+    color: var(--cream); text-shadow: 0 0 3px var(--night), 0 0 8px var(--night);
+  }
+
+  /* While the week is painted (the first frame can take seconds on a phone): a disc of the night where the planet will
+     be, its rim drawn in chalk, breathing slowly, and one line in it. Opacity and transform only, so it keeps breathing
+     while building the world holds the page; it goes with the first frame (base.js marks #spike data-pc-painted). */
+  .pc-loading { position: fixed; inset: 0; z-index: 1; display: grid; place-items: center; pointer-events: none; transition: opacity .6s ease, visibility 0s .6s; }
+  .pc-loading > * { grid-area: 1 / 1; }
+  .pc-loading-disc {
+    width: min(64vh, 82vw); aspect-ratio: 1; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(239, 230, 210, .06), rgba(239, 230, 210, .02) 72%, transparent 95%, rgba(239, 230, 210, .2) 97.5%, transparent 99%);
+    animation: pc-breathe 2.8s ease-in-out infinite alternate;
+  }
+  .pc-loading-word { font: italic 14px/1.3 var(--fg-font); letter-spacing: .03em; color: var(--cream-quiet); animation: pc-breathe-word 2.8s ease-in-out infinite alternate; }
+  @keyframes pc-breathe { from { transform: scale(.97); opacity: .5; } to { transform: scale(1.015); opacity: 1; } }
+  @keyframes pc-breathe-word { from { opacity: .6; } to { opacity: 1; } }
+  #spike[data-pc-painted] ~ .pc-loading { opacity: 0; visibility: hidden; }
+  html.embed .pc-loading { display: none; } /* the galaxy keeps its own painting until the planet says it is ready */
+  @media (prefers-reduced-motion: reduce) { .pc-loading-disc, .pc-loading-word { animation: none; } }
+
+  /* the site's own words at the head of the page, as on every other page of it: the name, which holds still while
+     the page changes, and the ways back to Ryan's weeks (the galaxy opens on this week) */
+  .pc-site {
+    position: fixed; left: 0; top: 0; z-index: 9; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 22px;
+    padding: 16px 28px 26px 22px; font-family: var(--fg-font);
+    background: radial-gradient(farthest-side at 0 0, rgba(10, 13, 32, .62), rgba(10, 13, 32, .3) 60%, transparent);
+  }
+  .pc-site a { position: relative; color: var(--cream); text-decoration: none; text-shadow: 0 0 6px var(--night); }
+  .pc-site a:first-child { margin-right: 6px; font-size: 18px; font-weight: 500; letter-spacing: -.01em; view-transition-name: brand; }
+  .pc-site a + a { padding: 2px 0 7px; font-size: 13.5px; font-weight: 600; letter-spacing: .045em; }
+  .pc-site a + a::after {
+    content: ""; position: absolute; left: -3px; right: -5px; bottom: 0; height: 5px; background: currentColor; opacity: .58;
+    -webkit-mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat;
+    transform: rotate(-.6deg); transform-origin: 0 100%;
+  }
+  .pc-site a:hover, .pc-site a:focus-visible { color: var(--ember); }
+  .pc-site a:focus-visible { outline: 1px dashed var(--ember); outline-offset: 4px; }
+  @media (max-width: 600px) {
+    .pc-site { gap: 2px 14px; padding: 12px 20px 20px 16px; }
+    .pc-site a:first-child { flex-basis: 100%; }
+    .strava-credit { top: 72px; }
+  }
+  /* a finger gets a 44 px target on each of the site's words, as on every page of the site: the hit area grows round
+     the word and the words stay put; on a phone the two rows part, and what hangs under them moves down as much */
+  @media (pointer: coarse) {
+    .pc-site a::before { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); translate: -50% -50%; }
+  }
+  @media (pointer: coarse) and (max-width: 600px) {
+    .pc-site { row-gap: 18px; }
+    .strava-credit { top: 90px; }
+    html .pc-why { top: 100px; }
+    html:has(.strava-credit) .pc-why { top: 192px; }
+  }
+  /* in a frame the site's words are the host page's; in the galaxy (embed) the planet keeps only its own controls */
+  html.framed .pc-site,
+  html.embed :is(.pc-site, .pc-hud .pc-hint ~ *, .pc-maker-backdrop, .strava-credit) { display: none !important; }
+</style>
+<!-- the default week's planet: deferred, so the parser isn't held while it loads and the app's own modules go out for
+     in parallel; a link with #p= or ?seed= replaces it, and it still runs before the module below either way -->
+<script defer src="./seed-week.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/build/three.module.js",
+    "three/addons/": "./vendor/three/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="spike"></div>
+<div class="pc-loading" aria-hidden="true"><span class="pc-loading-disc"></span><span class="pc-loading-word">Painting the week…</span></div>
+<nav class="pc-site" aria-label="Planet Creator">
+  <a href="../">Planet Creator</a>
+  <a href="../galaxy/" id="pc-galaxy">Galaxy</a>
+  <a href="../shelf/?ryan">Ryan's shelf</a>
+  <a href="../how/">How it works</a>
+</nav>
+<!-- the ink the lettering is written in: its edge runs a little into the paper -->
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <filter id="pc-ink" x="-4%" y="-15%" width="108%" height="130%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="4" result="fibre"/>
+    <feDisplacementMap in="SourceGraphic" in2="fibre" scale="1.2" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+<script type="module">
+import { createApp } from './base.js';
+import { createInkStyle } from './ink.js';
+import { installMaker } from './make.js';
+
+const params = new URLSearchParams(location.search);
+const packed = new URLSearchParams(location.hash.slice(1)).get('p');
+const provider = params.get('source') === 'strava' || params.get('source') === 'garmin' ? params.get('source') : null;
+if (provider) {
+  const { garminLines, poweredSvg } = await import('./strava-mark.js');
+  const credit = Object.assign(document.createElement('aside'), { className: 'strava-credit' });
+  // a Garmin week (Junction, from the make page) carries Garmin's line alone; a Strava week Strava's mark as well
+  credit.innerHTML = provider === 'strava'
+    ? `${poweredSvg}<p>Garmin-only sweat, training load, and anaerobic effect values are estimates.</p>`
+    : '<p>Sweat, training load, and anaerobic effect values are estimates.</p>';
+  // a Garmin-recorded week names its devices too (Strava API Policy 4.4, Garmin's brand guidelines); a URL value, so
+  // model names only, as text
+  const garmin = garminLines(params.getAll('garmin')).join(' · ');
+  if (garmin) credit.prepend(Object.assign(document.createElement('p'), { textContent: garmin }));
+  credit.setAttribute('aria-label', provider === 'strava'
+    ? `Powered by Strava.${garmin ? ` ${garmin}.` : ''} Garmin-only values are estimates.`
+    : `${garmin ? `${garmin}. ` : ''}Sweat, training load and anaerobic effect values are estimates.`);
+  document.body.append(credit);
+}
+let seed = window.SEED;
+if (packed) {
+  const { decodePlanet } = await import('./share.js');
+  seed = decodePlanet(packed);
+} else if (params.has('seed')) {
+  const name = params.get('seed');
+  if (!/^[a-zA-Z0-9_-]+$/.test(name)) throw new Error('Invalid seed name');
+  await new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `./seeds/${name}.js`;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error(`Seed not found: ${name}`));
+    document.head.append(script);
+  });
+  seed = window.SEED;
+}
+
+// the site's Galaxy word opens the galaxy on this week (it shows the whole galaxy for a week that isn't Ryan's)
+if (/^\d{4}-\d{2}-\d{2}$/.test(seed?.week || '')) document.getElementById('pc-galaxy').href = `../galaxy/#week=${seed.week}`;
+// the maker hangs its button on the app's HUD, which stands once the build is done
+await createApp({ style: createInkStyle(), seed, container: document.getElementById('spike') });
+installMaker({ seed, packed });
+// …and the share: a short clip of this planet for a phone's share sheet, painted on the site's story page (the link
+// carries no activity names)
+const share = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Share this planet' });
+share.addEventListener('click', async () => {
+  const clip = new URLSearchParams();
+  if (provider) {
+    clip.set('source', provider);
+    for (const line of (await import('./strava-mark.js')).garminLines(params.getAll('garmin'))) clip.append('garmin', line);
+  }
+  location.href = `../story/${String(clip) ? `?${clip}` : ''}#p=${(await import('./share.js')).encodePlanet(seed)}`;
+});
+document.querySelector('.pc-hud')?.append(share);
+</script>
+</body>
+</html>

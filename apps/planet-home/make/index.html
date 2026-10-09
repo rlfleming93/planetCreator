@@ -1,0 +1,1363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your week · Planet Creator</title>
+<meta name="description" content="Turn a week of training into a painted planet. Pick your watch's .fit files or a Garmin or Strava export. They're read in your browser and never uploaded.">
+<meta property="og:image" content="https://planet.fleming.run/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="628">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a0d20">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23efe6d2' stroke='%231b2540' stroke-width='1.5'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="/kit/icon-192.png">
+<link rel="canonical" href="https://planet.fleming.run/make/">
+<link rel="stylesheet" href="../lib/space.css">
+<link rel="stylesheet" href="../lib/ink.css">
+<style>
+  /* ---------------------------------------------------------------- bring your week */
+  .intro { display: grid; gap: 18px; padding: 40px var(--edge) 0; max-width: 1100px; }
+  .intro .title { font-size: clamp(36px, 4.4vw, 64px); }
+  .bench { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px 5vw; padding: 34px var(--edge) 0; align-items: start; }
+  /* the tray files are dropped in: a dashed edge round a well in the night */
+  .drop { display: grid; place-items: center; min-height: 230px; padding: 28px 24px; text-align: center; cursor: pointer; border: 2px dashed var(--cream-rule); border-radius: 6px 11px 7px 12px / 11px 6px 12px 7px; background: rgba(21, 27, 53, .62); transition: border-color .18s ease, background-color .18s ease; }
+  .drop-in { display: grid; gap: 16px; justify-items: center; pointer-events: none; }
+  .drop strong { max-width: 21em; font-weight: 400; font-size: clamp(21px, 2vw, 28px); line-height: 1.25; letter-spacing: -.01em; text-wrap: balance; }
+  .drop small { font-style: italic; color: var(--fg-quiet); font-size: 15px; }
+  .drop:hover, .drop.over, .drop:focus-within, .drop.file-focus { border-color: var(--mark); }
+  .drop.file-focus { outline: 2px solid var(--mark); outline-offset: 4px; }
+  .drop.over { background-color: rgba(232, 122, 94, .1); }
+  .progress { margin-top: 22px; min-height: 1.5em; font-style: italic; color: var(--mark); }
+  .log { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; font-size: 15px; overflow-wrap: anywhere; } /* Garmin names files after the account's email */
+  .log li { padding-left: 18px; position: relative; }
+  .log li::before { content: ""; position: absolute; left: 0; top: .66em; width: 10px; height: 3px; background: var(--mark); -webkit-mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; }
+  .log li.skip { color: var(--fg-quiet); font-style: italic; }
+  /* the week strip: a card a week, oldest to newest and scrolled to the newest, its height set before any week is in
+     so nothing under it moves; each card's dot is the week's main sport until its planet is painted into it */
+  .picker { display: grid; gap: 10px; margin-top: 22px; }
+  .picker-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; }
+  .picker-head .aside { margin: 0; }
+  .strip { position: relative; display: flex; gap: 10px; height: 184px; padding: 4px 2px 14px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: thin; }
+  .wk { flex: none; display: grid; grid-template-rows: auto 44px auto; align-content: start; gap: 9px; width: 138px; height: 164px; padding: 10px 11px 8px; scroll-snap-align: end;
+    text-align: left; font: inherit; color: var(--fg); background: var(--night-lift); border: 1.5px solid var(--line-faint); border-radius: 6px 11px 7px 12px / 11px 6px 12px 7px; cursor: pointer; }
+  .wk:hover, .wk:focus-visible { border-color: var(--hot); }
+  .wk[aria-pressed="true"] { border-color: var(--mark); }
+  .wk:disabled { cursor: default; color: var(--fg-quiet); background: transparent; }
+  .wk-when { font-style: italic; font-size: 14px; color: var(--fg-quiet); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wk[aria-pressed="true"] .wk-when { color: var(--mark); }
+  .wk-art { display: flex; align-items: end; justify-content: space-between; }
+  .wk-orb { position: relative; flex: none; width: 42px; height: 42px; border-radius: 50%; overflow: hidden; background: radial-gradient(circle at 36% 32%, rgb(var(--c) / .92), rgb(var(--c) / .3) 55%, transparent 70%); }
+  .wk-orb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .7s ease; }
+  .wk-orb img.in { opacity: 1; }
+  .wk.painting .wk-orb { outline: 1.5px dashed var(--mark); outline-offset: 2px; }
+  .wk-days { flex: none; width: 58px; height: 44px; overflow: visible; color: var(--fg-quiet); }
+  .wk-days .race { fill: none; stroke: var(--mark); stroke-width: 1.3; }
+  .wk-nums { font-size: 14px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wk-nums span { display: block; font-size: 13px; color: var(--fg-soft); overflow: hidden; text-overflow: ellipsis; }
+  .wk-nums .wk-race { color: var(--mark); font-style: italic; }
+  .batch { display: grid; gap: 10px; }
+  .batch-bar { height: 4px; border-radius: 2px; background: var(--line-faint); overflow: hidden; }
+  .batch-bar i { display: block; height: 100%; width: 0; background: var(--mark); transition: width .6s ease; }
+  .batch-line { min-height: 2.7em; font-style: italic; color: var(--fg-soft); } /* two lines held, so nothing moves as it changes */
+  .batch .build-row { min-height: 46px; margin-top: 0; }
+  .weeknav { display: flex; flex-wrap: wrap; gap: 0 20px; }
+  body.landed .weeknav { display: none; }
+  @media (prefers-reduced-motion: reduce) { .wk-orb img, .batch-bar i { transition: none; } }
+  .weeks-list { max-height: 330px; overflow: auto; margin-top: 8px; scrollbar-width: thin; }
+  .week { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; align-items: start; padding: 11px 2px; border-top: 1px solid var(--line-faint); cursor: pointer; }
+  .week:first-child { border-top: 0; }
+  .week input { margin-top: 6px; accent-color: var(--mark); }
+  .week strong { display: block; font-weight: 500; }
+  .week span span { display: block; font-size: 14px; color: var(--fg-quiet); font-style: italic; }
+  .build-row { display: flex; flex-wrap: wrap; gap: 8px 26px; align-items: baseline; margin-top: 16px; }
+  .get { margin-top: 34px; font-size: 15.5px; }
+  .get .h3 { margin-bottom: 6px; }
+  .get details { border-top: 1px solid var(--line-faint); padding: 11px 0; }
+  .get summary { cursor: pointer; font-weight: 500; }
+  .get summary:hover { color: var(--hot); }
+  .get ol, .get details p { margin: 10px 0 2px; color: var(--fg-soft); max-width: 44em; }
+  .get ol { padding-left: 1.2em; display: grid; gap: 6px; }
+  .get a { color: var(--mark); }
+  .samples { margin-top: 22px; font-size: 15.5px; color: var(--fg-soft); display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; }
+  .samples i { flex-basis: 100%; }
+  .samples span { display: contents; }
+  @media (hover: none) { .desk { display: none; } } /* nothing gets dropped on a phone */
+  .ledger { padding: 26px 30px 24px; }
+  .ledger .h3 { margin-bottom: 12px; }
+  .ledger .big { font-size: clamp(24px, 2.3vw, 32px); line-height: 1.12; letter-spacing: -.015em; }
+  .ledger .big b { font-weight: 400; color: var(--teal); }
+  .ledger p + p { margin-top: 10px; }
+  .ledger ol { margin: 12px 0 0; padding: 0 0 0 1.2em; font-size: 14px; color: var(--ink-soft); max-height: 120px; overflow: auto; }
+  .chooser { display: grid; gap: 12px; margin-bottom: 28px; }
+  .chooser-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; }
+  /* Strava's marks are dark artwork, never altered: on the night each sits on a patch of the paper */
+  .strava-asset, .strava-mark { display: inline-block; line-height: 0; vertical-align: middle; }
+  .strava-mark { justify-self: start; padding: 10px 14px; background: var(--slip-whole) center / 100% 100% no-repeat; }
+  .strava-asset { text-decoration: none; }
+  .strava-asset:hover, .strava-asset:focus-visible { color: inherit; }
+  .strava-asset svg { display: block; width: 237px; height: 48px; }
+  .strava-mark svg { display: block; width: min(276px, 100%); height: auto; }
+  .strava-box, .garmin-box { display: grid; gap: 8px; }
+  .strava-offer, .garmin-offer { display: grid; gap: 12px; }
+  .strava-more summary { cursor: pointer; font-weight: 500; padding: 4px 0; }
+  .strava-more summary:hover { color: var(--hot); }
+  .garmin { font-size: 15.5px; letter-spacing: .02em; color: var(--fg-soft); }
+  .strava-credit { display: grid; gap: 8px; margin-top: 8px; max-width: 40em; }
+  #strava-settings a, .strava-legal a, .progress a { color: var(--mark); font-style: normal; }
+  .progress:empty { min-height: 0; margin-top: 0; } /* still a live region, so not display: none */
+
+  /* ---------------------------------------------------------------- the reveal */
+  .stage { display: grid; grid-template-columns: minmax(340px, .8fr) minmax(0, 1.2fr); height: calc(100svh - 58px); min-height: 560px; }
+  .reading { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; padding: 22px 0 18px var(--edge); }
+  .reading header { display: grid; gap: 6px; padding-right: 24px; }
+  .kicker { font-style: italic; font-size: 15.5px; color: var(--fg-quiet); }
+  .reading .title { font-size: clamp(32px, 3.1vw, 48px); }
+  .whose { font-style: italic; color: var(--fg-quiet); font-size: 15.5px; }
+  .lines { list-style: none; margin: 16px 0 0; padding: 6px 24px 26px 0; overflow: auto; display: grid; align-content: start; gap: 10px; scrollbar-width: thin; -webkit-mask: linear-gradient(transparent, #000 14px, #000 calc(100% - 26px), transparent); mask: linear-gradient(transparent, #000 14px, #000 calc(100% - 26px), transparent); }
+  .lines li { font-size: 19px; line-height: 1.5; max-width: 40em; text-wrap: pretty; animation: rise .8s cubic-bezier(.16, 1, .3, 1) both; transition: color .6s ease; }
+  .lines li.day { margin-top: 12px; font-style: italic; font-size: 28px; line-height: 1.1; color: var(--mark); }
+  .lines li.day:first-child { margin-top: 0; }
+  .lines li.read:not(.day) { color: var(--fg-soft); } /* the lines already read: the one coming in is the week's ink */
+  .lines.at-once li { animation: none; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); filter: blur(1.2px); } }
+  .controls { display: grid; gap: 12px; padding: 14px 24px 0 0; border-top: 1px solid var(--line-faint); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+  .more { gap: 4px 20px; }
+  .more .word { font-size: 15px; }
+  /* the week's seven days on the planet's own sky: inked where there was training, filled once that day is built,
+     vermilion for the day being read */
+  .ribbon { position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%); display: flex; gap: 15px; margin: 0; padding: 0; list-style: none; font-size: 14px; font-weight: 600; letter-spacing: .05em; color: var(--fg-soft); pointer-events: none; opacity: 0; transition: opacity .8s ease; }
+  .sky-box.lifted .ribbon { opacity: 1; }
+  .ribbon li { display: grid; justify-items: center; gap: 5px; opacity: .32; transition: opacity .5s ease, color .5s ease; }
+  .ribbon li::after { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid currentColor; transition: background-color .5s ease; }
+  .ribbon li.trained { opacity: .75; }
+  .ribbon li.done { opacity: 1; color: var(--fg); }
+  .ribbon li.done::after, .ribbon li.now::after { background: currentColor; }
+  .ribbon li.now { opacity: 1; color: var(--mark); }
+  .status { min-height: 1.4em; font-style: italic; font-size: 14.5px; color: var(--fg-quiet); }
+  .status a { color: var(--mark); }
+
+  .sky { position: relative; display: grid; place-items: center; min-width: 0; overflow: hidden; }
+  .sky-box { position: relative; width: min(100%, calc(100svh - 76px)); aspect-ratio: 1; }
+  .sky-box iframe { position: absolute; inset: 0; pointer-events: none; }
+  .sky-box canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; transition: opacity 1.8s ease; }
+  .sky-box.lifted canvas { opacity: 0; }
+  .hint { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); font-style: italic; color: var(--fg-quiet); font-size: 15px; white-space: nowrap; }
+  .sky-box.building { cursor: pointer; } /* a tap on the planet skips to the whole week */
+
+  /* landed: the world takes the whole window, with its own controls back; the week's name and what to do
+     with it sit on a slip of paper in the corner the app keeps clear */
+  body.landed { overflow: hidden; }
+  body.landed .sky { position: fixed; inset: 0; z-index: 30; background: var(--night); }
+  body.landed .sky-box { width: 100%; height: 100%; aspect-ratio: auto; }
+  body.landed .sky-box iframe { -webkit-mask: none; mask: none; pointer-events: auto; }
+  body.landed .sky-box canvas, body.landed .hint, body.landed .ribbon { display: none; }
+  body.landed .reading { position: fixed; z-index: 31; top: 14px; right: 14px; width: min(400px, calc(100vw - 28px)); display: block; padding: 22px 24px 18px; background: var(--slip-whole) center / 100% 100% no-repeat; transform: rotate(.25deg);
+    --fg: var(--ink); --fg-soft: var(--ink-soft); --fg-quiet: var(--ink-soft); --hot: var(--accent); --mark: var(--accent); --line: var(--rule); --line-faint: var(--faint); color: var(--fg); }
+  body.landed .lines, body.landed .whose, body.landed #skip, body.landed #again, body.landed #land, body.landed #next, body.landed #own { display: none; }
+  body.landed .reading .title { font-size: 26px; }
+  body.landed .controls { padding: 12px 0 0; }
+  body.landed .strava-credit { position: fixed; z-index: 52; top: 14px; left: 14px; margin: 0; width: min(280px, calc(100vw - 32px)); background: rgba(243, 236, 220, .96); padding: 8px 10px; --fg-soft: var(--ink-soft); --fg-quiet: var(--ink-soft); color: var(--ink); }
+
+  @media (max-width: 900px) {
+    .strip { margin: 0 calc(-1 * var(--edge)); padding-inline: var(--edge); scroll-padding-inline: var(--edge); } /* the strip runs to the phone's edges */
+    html { scroll-padding: calc(min(46svh, 520px) + 24px) 0 200px; } /* the planet stays in view above, the controls below */
+    .bench { grid-template-columns: 1fr; }
+    .stage { grid-template-columns: 1fr; height: auto; min-height: 0; }
+    .sky { order: -1; position: sticky; top: 0; z-index: 2; background: linear-gradient(var(--night) calc(100% - 18px), transparent); }
+    .sky-box { width: min(100%, 46svh, 520px); }
+    .reading { padding: 4px var(--edge) 0; }
+    .lines { overflow: visible; -webkit-mask: none; mask: none; padding-right: 0; }
+    .lines li { font-size: 20px; }
+    .lines li.day { font-size: 30px; }
+    .ribbon { gap: 13px; font-size: 13px; }
+    .controls { padding: 14px 0 24px; position: sticky; bottom: 0; background: linear-gradient(to top, var(--night) calc(100% - 14px), transparent); }
+    body.landed .controls { position: static; padding: 10px 0 0; background: none; }
+    body.landed .reading { top: 10px; right: 10px; left: 10px; width: auto; padding: 16px 18px 12px; }
+    body.landed .reading header { gap: 2px; }
+    body.landed .reading .title { font-size: 21px; }
+    body.landed .kicker { display: none; }
+    body.landed .strava-credit { top: auto; bottom: 10px; left: 10px; width: min(280px, calc(100vw - 20px)); }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute"><filter id="pc-ink" x="-4%" y="-15%" width="108%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="4" result="fibre"/><feDisplacementMap in="SourceGraphic" in2="fibre" scale="1.2" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
+
+<nav class="top" aria-label="Planet Creator">
+  <a class="brand" href="../">Planet Creator</a>
+  <ul class="trail">
+    <li><a class="word" href="../galaxy/">Galaxy</a></li>
+    <li><a class="word" href="../shelf/?ryan">Ryan's shelf</a></li>
+    <li><a class="word" href="./" aria-current="page">Make yours</a></li>
+    <li><a class="word" href="../how/">How it works</a></li>
+  </ul>
+</nav>
+
+<main id="main">
+  <section id="bring" aria-labelledby="bring-title">
+    <header class="intro">
+      <h1 class="title" id="bring-title">Bring your week</h1>
+      <p class="lede" id="bring-lede">Most watches save each workout as a .fit file. Pick a week of them and this page paints that week as a planet you can land on. Your files are read here, in your browser, and never uploaded.</p>
+    </header>
+    <div class="bench">
+      <div>
+        <div class="chooser" id="source-chooser" role="group" aria-labelledby="chooser-title" hidden>
+          <h2 class="h3" id="chooser-title">Strava or files</h2>
+          <!-- Garmin through Junction (functions/api/garmin): a form post, since each connection makes a Junction user -->
+          <form class="garmin-offer" id="garmin-offer" method="post" action="/api/garmin/login" hidden>
+            <div class="chooser-row"><button class="btn" type="submit" id="garmin-login">Connect Garmin</button></div>
+            <p class="aside">Garmin will ask you to let Junction read your Garmin Connect data. Junction is how this site reaches Garmin. Your last full week paints itself once Garmin sends it, which can take a few minutes. Tap Disconnect, or wait 30 days, and Planet Creator has Junction delete it.</p>
+          </form>
+          <div class="garmin-box" id="garmin-box" hidden>
+            <p class="garmin">Garmin, through Junction</p>
+            <div class="build-row">
+              <button class="btn" type="button" id="garmin-latest">Paint last week</button>
+              <button class="btn quiet" type="button" id="garmin-disconnect">Disconnect Garmin</button>
+            </div>
+            <details class="strava-more" id="garmin-more">
+              <summary>Another week</summary>
+              <div class="weeks-list" id="garmin-weeks" role="radiogroup" aria-label="Recent Mondays, this week first"></div>
+              <div class="build-row"><button class="btn quiet" type="button" id="garmin-fetch">Paint this week</button></div>
+            </details>
+            <p class="aside">Painting asks Planet Creator's Cloudflare Function to read the week from Junction. The Function turns it into a planet in memory and keeps none of it. Junction and Cloudflare process the request.</p>
+          </div>
+          <!-- here, under its own button, so a phone shows the wait for Garmin's history without scrolling -->
+          <p class="progress" id="garmin-note" role="status" aria-live="polite"></p>
+          <div class="strava-offer" id="strava-offer" hidden>
+            <div class="chooser-row">
+              <a class="strava-asset" id="strava-login" href="/api/strava/login">Connect with Strava</a>
+            </div>
+            <p class="aside">Strava will ask to let this site read your activities, private ones too, so no session is left off the planet. Leave both boxes ticked, and your last full week paints itself when you're back. Nothing is stored on Planet Creator's server.</p>
+            <p class="aside">Strava caps how many athletes a new app can connect until it reviews the app. If Strava shows a limit error, use files for now.</p>
+          </div>
+          <div class="strava-box" id="strava-box" hidden>
+            <p class="strava-mark" id="strava-powered"><span class="sr-only">Powered by Strava</span></p>
+            <div class="build-row">
+              <button class="btn" type="button" id="strava-latest">Paint last week</button>
+              <button class="btn quiet" type="button" id="strava-disconnect">Disconnect Strava</button>
+            </div>
+            <!-- the week strip: here for Strava's weeks, moved under the file log for a file's (showWeeks) -->
+            <section class="picker" id="picker" aria-labelledby="picker-title" hidden>
+              <div class="picker-head"><h2 class="h3" id="picker-title">Your weeks</h2><p class="aside" id="picker-note"></p></div>
+              <div class="strip" id="strip" role="group" aria-label="Your weeks, oldest to newest"></div>
+              <div class="build-row" id="batch-row"><button class="btn quiet" type="button" id="batch-12">Paint my last 12 weeks</button><button class="btn quiet" type="button" id="batch-year">Paint my year</button></div>
+              <div class="batch" id="batch" hidden>
+                <p class="batch-line" id="batch-line" role="status" aria-live="polite"></p>
+                <div class="batch-bar" aria-hidden="true"><i id="batch-fill"></i></div>
+                <div class="build-row" id="batch-acts"></div>
+              </div>
+            </section>
+            <p class="aside">Painting asks Planet Creator's Cloudflare Function to fetch your weeks from Strava. The Function turns them into planets in memory and doesn't store them. Strava and Cloudflare process the request.</p>
+          </div>
+          <p id="strava-settings" hidden>Planet Creator no longer has a token to revoke. <a href="https://www.strava.com/settings/apps">Revoke it in your Strava settings</a>.</p>
+          <div class="chooser-row"><button class="btn quiet" type="button" id="use-files" aria-controls="drop">Use files</button></div>
+          <p class="aside strava-legal"><a href="../privacy/">Privacy</a> · <a href="../terms/">Terms</a></p>
+        </div>
+        <p class="progress" id="strava-note" role="status" aria-live="polite"></p>
+        <label class="drop" id="drop" for="files">
+          <span class="drop-in">
+            <strong>Pick a week of .fit files, or the .zip they came in</strong>
+            <span class="btn" id="choose">Choose files</span>
+            <small><span class="desk">Or drop them here. </span>Whole Garmin and Strava exports work too. Nothing is uploaded.</small>
+          </span>
+        </label>
+        <!-- no accept filter: iOS and Android grey out .fit files under one, since they don't know the extension -->
+        <input class="sr-only" id="files" type="file" multiple>
+        <p class="progress" id="progress" role="status" aria-live="polite"></p>
+        <ul class="log" id="log"></ul>
+        <!-- in the HTML, not filled in by script, so nothing below shifts after the first paint (keys: lib/samples.js) -->
+        <p class="samples"><i>Or see a sample week first:</i><span id="sample-links"><a href="?sample=marathon">Ryan's marathon week</a> <a href="?sample=rider">A rider's week</a> <a href="?sample=swimmer">A swimmer's week</a> <a href="?sample=lifter">A lifter's week</a> <a href="?sample=yogi">A yoga week</a> <a href="?sample=triathlete">A triathlete's week</a></span></p>
+        <section class="get" id="get" aria-labelledby="get-title">
+          <h2 class="h3" id="get-title">Getting the files</h2>
+          <details id="get-garmin-phone" open>
+            <summary>Garmin, on a phone</summary>
+            <ol>
+              <li>Open <a href="https://connect.garmin.com/app/activities">connect.garmin.com</a> in your phone's browser and sign in. The Garmin Connect app can't export files.</li>
+              <li>Open a workout from the week, tap the gear icon, then Export Original (some layouts say Export File). A .zip lands in your downloads.</li>
+              <li>Do the same for the week's other workouts.</li>
+              <li>Come back here, tap Choose files and pick the .zip files. On an iPhone they're in the Files app, under Downloads.</li>
+            </ol>
+          </details>
+          <details id="get-garmin-computer">
+            <summary>Garmin, on a computer</summary>
+            <ol>
+              <li>The same Export Original works on <a href="https://connect.garmin.com/app/activities">connect.garmin.com</a>, one workout at a time. Drop the .zip files here without unzipping them.</li>
+              <li>For every week at once, open <a href="https://www.garmin.com/en-US/account/datamanagement/exportdata/">Export Your Data</a> in your Garmin account and request the export. Garmin emails a link to a .zip, often within two days. Drop the whole .zip here.</li>
+            </ol>
+          </details>
+          <!-- the guide opens on the Garmin steps for the device in hand, before the first paint -->
+          <script>if (!matchMedia('(hover: none)').matches) { document.getElementById('get-garmin-phone').open = false; document.getElementById('get-garmin-computer').open = true; }</script>
+          <details id="get-strava">
+            <summary>Strava</summary>
+            <p id="strava-off">Connecting Strava straight to this page isn't switched on yet. Its exports work:</p>
+            <ol>
+              <li>One workout: open it on strava.com, open its ⋯ menu and pick Export Original. If it was recorded as a .fit, that's the file. GPX and TCX files won't work here.</li>
+              <li>Every week: open <a href="https://www.strava.com/athlete/delete_your_account">Download or Delete Your Account</a> on strava.com and pick Request Your Archive. Strava emails a .zip, usually within a few hours. Pick that .zip here.</li>
+              <li>Strava only has what synced to it. A week from before you linked your watch needs the watch's own files.</li>
+            </ol>
+          </details>
+          <details>
+            <summary>Coros, Suunto, Wahoo or Polar</summary>
+            <p>Their apps and websites export .fit files too, and those work the same way.</p>
+          </details>
+          <details id="get-apple">
+            <summary>Apple Watch</summary>
+            <p>Apple Health's own export has no .fit files in it, so it can't be read here. An app that saves your workouts as .fit files, such as <a href="https://apps.apple.com/us/app/healthfit/id1202650514">HealthFit</a>, works.</p>
+          </details>
+        </section>
+      </div>
+      <aside class="ledger slip" aria-labelledby="ledger-title">
+        <h2 class="h3" id="ledger-title">What left this tab</h2>
+        <p class="strava-mark" id="ledger-mark" hidden><span class="sr-only">Powered by Strava</span></p>
+        <p class="big" id="ledger-big">Nothing yet. Pick some files and watch this.</p>
+        <p class="aside" id="ledger-note">Every request this page makes shows up here as it happens. A file sent to a server would be one of them.</p>
+        <ol id="ledger-list"></ol>
+      </aside>
+    </div>
+  </section>
+
+  <section class="stage" id="stage" hidden aria-labelledby="week-title">
+    <div class="reading">
+      <header>
+        <h1 class="title" id="week-title">Your week</h1>
+        <!-- "Garmin [device model]" right under the title, for a Strava week recorded on a Garmin (Strava API Policy 4.4) -->
+        <p class="garmin" id="garmin-credit" hidden></p>
+        <p class="kicker" id="kicker">Your week</p>
+        <p class="whose" id="whose"></p>
+        <p class="weeknav" id="weeknav" hidden><button class="word" type="button" id="so-far">This week so far</button><button class="word" type="button" id="other-weeks">Other weeks</button></p>
+        <div class="strava-credit" id="strava-credit" hidden>
+          <p class="strava-mark" id="strava-stage-mark"><span class="sr-only">Powered by Strava</span></p>
+          <p class="aside" id="strava-fidelity"></p>
+        </div>
+      </header>
+      <ol class="lines" id="lines" aria-live="polite"></ol>
+      <div class="controls">
+        <div class="row">
+          <button class="btn" type="button" id="next">Next day →</button>
+          <a class="btn" id="share" href="../story/" hidden>Share your planet</a>
+          <button class="btn quiet" type="button" id="land" hidden>Land on it</button>
+          <button class="btn quiet" type="button" id="back" hidden>Back to the reading</button>
+          <button class="btn quiet" type="button" id="skip">Skip to the end</button>
+        </div>
+        <div class="row more" id="keep" hidden>
+          <button class="word" type="button" id="save">Save to your shelf</button>
+          <button class="word" type="button" id="poster">Download a poster</button>
+          <button class="word" type="button" id="copy">Copy a link</button>
+          <button class="word" type="button" id="again">Read it again</button>
+          <a class="word" id="own" href="./" hidden>Make your own</a>
+        </div>
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+    <div class="sky">
+      <div class="sky-box" id="sky-box">
+        <iframe class="world" id="world" title="Your planet, drawn by Planet Creator" tabindex="-1"></iframe>
+        <canvas id="veil" aria-hidden="true"></canvas>
+        <p class="hint" id="hint">Painting the planet…</p>
+        <ol class="ribbon" id="ribbon" aria-hidden="true"></ol>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>Made by <a href="https://fleming.run/">Ryan Fleming</a>. The first planet was his marathon week.</span>
+  <span class="links"><a href="../shelf/">Your shelf</a><a href="../privacy/">Privacy</a><a href="../terms/">Terms</a><a href="https://github.com/rlfleming93/planetCreator">Source on GitHub</a></span>
+</footer>
+
+<script type="module">
+import { showWorld, grab, land, guideRows, setQuiet, longDate } from '../lib/world.js';
+import { weekOf, weeksOf, sortOf } from '../lib/week.js';
+import { reading } from '../lib/reading.js';
+import { SAMPLES } from '../lib/samples.js';
+import { status as stravaStatus, recentMondays, fetchWeek, fetchRange, disconnect as disconnectStrava, connectSvg } from '../lib/strava-import.js';
+import { status as garminStatus, garminMondays, fetchWeek as fetchGarminWeek, disconnect as disconnectGarmin } from '../lib/garmin-import.js';
+import { garminLines, poweredSvg } from '../planet/strava-mark.js';
+import { savePlanet, getPlanet, getThumb, putThumb, getGlobe, putGlobe } from '../lib/store.js';
+import { SPORTS } from '../galaxy/galaxy-data.js';
+
+const $ = (id) => document.getElementById(id);
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const metric = !/-(US|GB|LR|MM)$/i.test(navigator.language) && navigator.language !== 'en';
+const frame = $('world'), lines = $('lines'), hint = $('hint'), status = $('status');
+let week = null, app = null, run = 0, fast = false;
+// weekWarning and weekGarmin: what the provider said about the week being painted, and its "Garmin [device model]" lines
+let ledgerMode = 'files', ledgerState = 'idle', ledgerWhat = 'the selected week', weekWarning = '', weekGarmin = [];
+const creditHome = $('strava-credit').parentNode;
+function parkCredit(landed) {
+  const credit = $('strava-credit');
+  if (credit.hidden) return;
+  (landed ? document.body : creditHome).append(credit);
+}
+
+// ------------------------------------------------------------ what left this tab
+// Every resource this page asks for, from the moment something is dropped: the proof that nothing is uploaded
+const sent = [];
+let watching = false;
+new PerformanceObserver((list) => {
+  if (!watching) return;
+  sent.push(...list.getEntries());
+  ledger();
+}).observe({ type: 'resource' });
+function ledger() {
+  const mark = $('ledger-mark');
+  if (ledgerMode === 'strava' || ledgerMode === 'garmin') {
+    const strava = ledgerMode === 'strava';
+    mark.hidden = !strava;
+    $('ledger-big').textContent = strava
+      ? `This tab asked Planet Creator's Cloudflare Function to fetch ${ledgerWhat} from Strava.`
+      : "This tab asked Planet Creator's Cloudflare Function to read the selected week from Junction, which holds what Garmin sent.";
+    $('ledger-note').textContent = (strava ? {
+      pending: 'The request is in progress. Any activity data is transformed in memory and not stored.',
+      done: 'The Function transformed it in memory and did not store it. Strava and Cloudflare processed the request.',
+      failed: 'The request did not complete. No activity data was stored. Strava and Cloudflare processed the request.',
+    } : {
+      pending: 'The request is in progress. The Function turns the week into a planet in memory and keeps none of it.',
+      done: 'The Function turned it into a planet in memory and kept none of it. Junction and Cloudflare processed the request.',
+      failed: 'The request did not complete. Nothing was kept. Junction and Cloudflare processed the request.',
+    })[ledgerState] + (strava && budget ? ` Strava lets this site read ${budget.limit[0]} times every 15 minutes, for all its visitors together. ${budget.left[0]} reads were left at the last request, and ${budget.left[1].toLocaleString('en-US')} of ${budget.limit[1].toLocaleString('en-US')} for the day.` : '');
+    $('ledger-list').replaceChildren();
+    return;
+  }
+  mark.hidden = true;
+  const away = sent.filter((e) => new URL(e.name).origin !== location.origin);
+  $('ledger-big').innerHTML = away.length
+    ? `${away.length} request${away.length === 1 ? '' : 's'} to another server.`
+    : '<b>Nothing.</b> Not one request to any other server since you added the files.';
+  $('ledger-note').textContent = sent.length
+    ? `${sent.length} request${sent.length === 1 ? '' : 's'} in all, each one to ${location.host}: this page fetching its own code to read your files.`
+    : 'Not a single request of any kind since you added the files.';
+  $('ledger-list').replaceChildren(...sent.slice(-8).map((e) => Object.assign(document.createElement('li'), { textContent: new URL(e.name).pathname })));
+}
+
+// ------------------------------------------------------------------- reading files
+// One week paints at once; more go into the week strip, the newest in view (and a whole export's into a batch)
+function showWeeks(found, source = 'files', detail = null) {
+  if (found.length === 1) { start(found[0], 'yours', found[0].name, source, detail); return; }
+  pick.source = 'files';
+  pick.mondays = found.map((w) => w.week).reverse();
+  pick.weeks = new Map(found.map((w) => [w.week, { w, detail: null, garmin: [] }]));
+  $('log').after($('picker'));
+  showPicker();
+  $('choose').classList.add('quiet');
+  $('picker').scrollIntoView({ block: 'nearest', behavior: still ? 'auto' : 'smooth' });
+}
+async function read(files) {
+  if (!files.length) return;
+  sent.length = 0;
+  watching = true;
+  ledgerMode = 'files';
+  ledger();
+  $('log').replaceChildren();
+  const progress = $('progress');
+  progress.textContent = files.length === 1 ? `Opening ${files[0].name}…` : `Opening ${files.length} files…`;
+  progress.scrollIntoView({ block: 'nearest', behavior: still ? 'auto' : 'smooth' }); // on a phone it sits below the fold
+  const t0 = performance.now();
+  try {
+    const { readFiles } = await import('../lib/import.js');
+    const result = await readFiles(files, ({ note, read, total }) => {
+      // a whole account's export is thousands of files: say roughly how long is left once there's a pace to go on
+      const left = read >= 8 && total > read ? ((performance.now() - t0) / read) * (total - read) / 1000 : 0;
+      progress.textContent = `${note}${total ? ` (${read} of ${total})` : ''}${left > 90 ? `, about ${Math.round(left / 60)} min to go` : left > 8 ? `, about ${Math.round(left)} s to go` : ''}`;
+    });
+    const found = await weeksOf(result.activities);
+    const ms = performance.now() - t0;
+    progress.textContent = `Read ${result.activities.length} activit${result.activities.length === 1 ? 'y' : 'ies'} in ${ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`}.`;
+    $('log').replaceChildren(...result.log.map((line) => Object.assign(document.createElement('li'), { textContent: line })),
+      ...result.skipped.slice(0, 6).map((line) => Object.assign(document.createElement('li'), { className: 'skip', textContent: `skipped ${line}` })));
+    showWeeks(found, 'files');
+  } catch (error) {
+    progress.replaceChildren(`${error.message} `, Object.assign(document.createElement('a'), { href: '#get', textContent: 'Which files work' }));
+    if (/Apple Health/.test(error.message)) $('get-apple').open = true;
+  }
+}
+const drop = $('drop');
+for (const t of ['dragenter', 'dragover']) drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); });
+for (const t of ['dragleave', 'drop']) drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove('over'); });
+addEventListener('dragover', (e) => e.preventDefault());
+addEventListener('drop', (e) => { e.preventDefault(); if (!$('bring').hidden) read([...e.dataTransfer.files]); });
+$('files').addEventListener('change', (e) => { read([...e.target.files]); e.target.value = ''; });
+$('files').addEventListener('focus', () => drop.classList.add('file-focus'));
+$('files').addEventListener('blur', () => drop.classList.remove('file-focus'));
+
+// ------------------------------------------------------------------ the night over it
+// A disc of the night lies over the real planet (feathered as the planet's own frame is) with its rim drawn in chalk
+// while the planet is drawn underneath it, and lifts once the week's bare ground is there to be built on.
+const veil = $('veil'), ctx = veil.getContext('2d'), box = $('sky-box');
+const night = getComputedStyle(document.documentElement).getPropertyValue('--night').trim();
+let W = 0, H = 0;
+function lay() {
+  const r = veil.getBoundingClientRect(), d = devicePixelRatio || 1;
+  W = r.width; H = r.height;
+  veil.width = Math.round(W * d); veil.height = Math.round(H * d);
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  const g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.min(W, H) / 2); // ink.css .world's own feather
+  g.addColorStop(0.8, night);
+  g.addColorStop(0.97, `${night}00`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  box.classList.remove('lifted');
+}
+function pencil(k0, k1) { // the planet's rim, drawn in chalk from k0 to k1 of the way round (the app frames it at 0.68 of the height)
+  const R = 0.34 * H, a = (k) => -Math.PI / 2 + k * Math.PI * 2;
+  ctx.strokeStyle = 'rgba(239, 230, 210, .34)';
+  ctx.lineWidth = 1.1;
+  for (const [dx, dy] of [[0, 0], [0.8, -0.6]]) {
+    ctx.beginPath();
+    ctx.arc(W / 2 + dx, H / 2 + dy, R + dx, a(k0), a(k1));
+    ctx.stroke();
+  }
+}
+const lift = () => box.classList.add('lifted');
+addEventListener('resize', () => { if (!box.classList.contains('lifted') && !document.body.classList.contains('landed')) { lay(); pencil(0, 1); } });
+
+// ------------------------------------------------------------------------ the reading
+// The reading plays once, the first time a planet is revealed in this browser; after that it's all there at
+// once, with "Read it again" to play it over.
+const readKey = (code) => { let h = 2166136261; for (let i = 0; i < code.length; i++) h = Math.imul(h ^ code.charCodeAt(i), 16777619); return `ph-read:${(h >>> 0).toString(36)}`; };
+const seen = (code) => { try { return !!localStorage.getItem(readKey(code)); } catch { return false; } };
+const remember = (code) => { try { localStorage.setItem(readKey(code), '1'); } catch {} };
+const add = (text, cls) => {
+  for (const li of lines.children) li.classList.add('read');
+  const li = Object.assign(document.createElement('li'), { textContent: text, className: cls || '' });
+  lines.append(li);
+  if (!lines.classList.contains('at-once')) li.scrollIntoView({ block: 'nearest', behavior: still ? 'auto' : 'smooth' });
+};
+// every pause in the reading: Skip makes them all nothing, so it runs straight to the end; Next day makes the rest of
+// the day's nothing, so the next day starts at once and plays as usual
+let entries = [], at = -1, hurry = false, build = null;
+const sleep = (ms, id) => new Promise((resolve, reject) => setTimeout(() => (id === run ? resolve() : reject(new Error('stale'))), still || fast || hurry ? 0 : ms));
+function ribbon() {
+  const trained = new Set(entries.flatMap((e) => e.days)), now = entries[at];
+  $('ribbon').replaceChildren(...'MTWTFSS'.split('').map((d, i) => Object.assign(document.createElement('li'), {
+    textContent: d,
+    className: [trained.has(i) && 'trained', now?.days.includes(i) && 'now', trained.has(i) && now && (now.day == null || i < now.days[0]) && 'done'].filter(Boolean).join(' '),
+  })));
+}
+// the sessions (features.list ids) a line is about, and every session on the entry's days
+const sessionAt = (i) => app?.features.list[i]?.id;
+const dayIds = (days) => days.flatMap((d) => build?.days?.[d] || []);
+
+// The planet builds as the week is read (the app's api.build): it opens on Monday morning's bare ground, and each
+// line's session comes in as its words do, after the app's own field guide has turned the camera to it; the body and
+// the race's ring come in with the session that earns them. Read at once (a second visit, reduced motion) the planet
+// is the whole week from the start.
+async function play(atOnce) {
+  const id = ++run;
+  fast = atOnce;
+  hurry = false;
+  build = null; // a week left mid-build (Other weeks) leaves nothing behind for the next one
+  box.classList.remove('building');
+  entries = reading(week.seed, { metric });
+  at = -1;
+  lines.replaceChildren();
+  lines.classList.toggle('at-once', atOnce);
+  $('land').hidden = $('again').hidden = $('keep').hidden = $('share').hidden = true;
+  $('skip').hidden = $('next').hidden = atOnce;
+  ribbon();
+  try {
+    if (!app) { // the paper first, with the rim pencilled round while the planet is drawn underneath it
+      lay();
+      hint.hidden = false;
+      hint.textContent = 'Painting the planet…';
+      const drawn = showWorld(frame, week.named);
+      for (let k = 1; k <= 24 && !still; k++) { pencil((k - 1) / 24, k / 24); await sleep(35, id); }
+      app = await drawn;
+      if (id !== run) return;
+    } else if (!atOnce) { lay(); pencil(0, 1); }
+    build = !atOnce && !still && app.build?.prepare ? app.build : null;
+    if (build) {
+      await build.prepare();
+      if (id !== run) return;
+      build.at(0);
+      box.classList.add('building');
+    }
+    hint.hidden = true;
+    lift();
+    const rows = guideRows(frame);
+    for (const [k, entry] of entries.entries()) {
+      at = k;
+      hurry = false;
+      ribbon();
+      $('next').textContent = entries[k + 1]?.day == null ? 'The whole week →' : 'Next day →';
+      $('next').hidden = fast || k === entries.length - 1;
+      for (const [i, text] of entry.lines.entries()) {
+        const focus = entry.focus[i];
+        if (focus != null && rows[focus] && !fast) { rows[focus].click(); await sleep(i ? 900 : 700, id); } // the app's own field guide turns the camera to it
+        if (build && focus != null) build.show(sessionAt(focus), { duration: fast || hurry ? 0.5 : 1.8 });
+        if (!i) add(entry.title, 'day');
+        add(text);
+        await sleep(Math.min(6500, 1600 + text.length * 32), id);
+      }
+      if (build) build.show(entry.day == null ? build.days.flat() : dayIds(entry.days), { duration: fast ? 0.5 : 1.2 });
+    }
+    finish(id);
+  } catch (error) {
+    if (error.message !== 'stale') { hint.hidden = false; hint.textContent = error.message; finish(id); }
+  }
+}
+function finish(id) {
+  if (id !== run) return;
+  remember(week.code);
+  lift();
+  build?.end({ duration: 0.8 }); // whatever is still to come in comes in, and the planet is the week's own again
+  box.classList.remove('building');
+  at = entries.length - 1;
+  ribbon();
+  $('skip').hidden = $('next').hidden = true;
+  $('land').hidden = !app;
+  $('again').hidden = $('keep').hidden = $('share').hidden = false;
+  if (!still) $('share').focus({ preventScroll: true });
+}
+$('skip').addEventListener('click', () => { fast = true; });
+box.addEventListener('click', () => { if (box.classList.contains('building')) fast = true; }); // a tap on the planet skips too
+$('next').addEventListener('click', () => { hurry = true; });
+$('again').addEventListener('click', () => play(false));
+
+// ------------------------------------------------------------------------- landing
+// The runner comes down beside the week's biggest thing: its race's monument, or else its longest route.
+function biggest(features) {
+  const list = features.list;
+  const monument = list.findIndex((f) => f.id === 'monument');
+  if (monument >= 0) return monument;
+  let best = 0;
+  list.forEach((f, i) => { if ((f.span || 0) > (list[best].span || 0)) best = i; });
+  return best;
+}
+$('land').addEventListener('click', () => {
+  if (!app) return;
+  document.body.classList.add('landed');
+  parkCredit(true);
+  $('back').hidden = false;
+  land(frame, biggest(app.features));
+});
+$('back').addEventListener('click', () => {
+  document.body.classList.remove('landed');
+  parkCredit(false);
+  $('back').hidden = true;
+  grab(frame, false);
+  app.setMode('orbit');
+  setQuiet(frame, true);
+  $('land').focus();
+});
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('landed')) $('back').click(); });
+
+// ------------------------------------------------------------------ keeping it
+function planetLink(code, target = location.pathname) {
+  const link = new URL(target, location.href);
+  link.search = '';
+  if (week?.source === 'strava' || week?.source === 'garmin') {
+    link.searchParams.set('source', week.source);
+    if (week.detail === 'summary') link.searchParams.set('detail', 'summary');
+    for (const line of week.garmin) link.searchParams.append('garmin', line);
+  }
+  link.hash = `p=${code}`;
+  return link.href;
+}
+const say = (html) => { status.innerHTML = html; };
+$('save').addEventListener('click', async () => {
+  try {
+    await keep(week, week);
+    say(`Saved. It's on <a href="../shelf/#${week.week}">your shelf</a>, in this browser only.`);
+  } catch (error) { say(`Couldn't save it: ${error.message}`); }
+});
+$('poster').addEventListener('click', async (e) => {
+  const button = e.currentTarget;
+  button.disabled = true;
+  say('Painting the poster at print size…');
+  try {
+    const { makePoster } = await import('../lib/poster.js');
+    const blob = await makePoster({ link: `#p=${week.code}`, week: week.week, title: week.name, stats: week.stats, source: week.source, detail: week.detail, garmin: week.garmin, metric });
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `planet-${week.week}.${blob.type === 'application/pdf' ? 'pdf' : 'png'}` });
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    say('The poster is in your downloads.');
+  } catch (error) { say(`The poster didn't come out: ${error.message}`); }
+  button.disabled = false;
+});
+$('copy').addEventListener('click', async () => {
+  const link = planetLink(week.code); // the planet with no names or places, retaining only provider provenance
+  try { await navigator.clipboard.writeText(link); say('Link copied. It carries the planet and the reading, with no names and no places.'); }
+  catch { say(`Your browser blocked the clipboard. The link: <a href="${link}">${link.slice(0, 48)}…</a>`); }
+});
+
+// ------------------------------------------------------------------------ a week in
+function start(w, kind, name, source = 'files', detail = null) {
+  name = name || w.name;
+  const provider = source === 'strava' || source === 'garmin' ? source : null;
+  week = { ...w, name, source: provider || 'files', detail: provider === 'strava' ? (detail === 'summary' ? 'summary' : 'streams') : null, garmin: provider ? weekGarmin : [] };
+  app = null;
+  document.title = `${name} · Planet Creator`;
+  $('kicker').textContent = { yours: 'Your week', sample: 'A sample week', shared: 'A week, shared' }[kind];
+  $('week-title').textContent = name;
+  $('whose').textContent = `The week of ${longDate(w.week)}${name.toLowerCase() === w.made ? '' : ` · ${w.made}`}`;
+  $('garmin-credit').textContent = week.garmin.join(' · ');
+  $('garmin-credit').hidden = !week.garmin.length;
+  const credit = $('strava-credit');
+  credit.hidden = !provider;
+  $('strava-stage-mark').hidden = provider !== 'strava'; // a Garmin week came through Junction, with no Strava in it
+  if (provider) {
+    const bits = provider === 'strava'
+      ? ["Made from the detail Strava provides. Any sweat, training load or anaerobic effect shown is an estimate, because Strava doesn't provide those Garmin fields."]
+      : ["Made from what Garmin sent Junction. Any sweat, training load or anaerobic effect shown is an estimate, because Junction doesn't pass those Garmin values on."];
+    if (weekWarning) bits.push(weekWarning);
+    bits.push(provider === 'strava'
+      ? "Planet Creator's Cloudflare Function fetched this week from Strava and turned it into a planet in memory, without storing it. Strava and Cloudflare processed that request."
+      : "Planet Creator's Cloudflare Function read this week from Junction and turned it into a planet in memory, without storing it. Junction and Cloudflare processed that request.");
+    $('strava-fidelity').textContent = bits.join(' ');
+    parkCredit(document.body.classList.contains('landed'));
+  }
+  $('bring').hidden = true;
+  $('stage').hidden = false;
+  // the clip for a story or a post is its own page (story/, lib/story.js), with the code that carries no names; a
+  // Strava week's clip carries Powered by Strava, and a Strava or Garmin week the Garmin line when it has one
+  const clip = new URLSearchParams(provider ? { source: provider } : {});
+  for (const line of week.garmin) clip.append('garmin', line);
+  $('share').href = `../story/${String(clip) ? `?${clip}` : ''}#p=${w.code}`;
+  $('share').textContent = kind === 'yours' ? 'Share your planet' : 'Share this planet';
+  $('own').hidden = kind === 'yours';
+  say(kind === 'yours' && !provider ? 'Your files stayed in this browser. Nothing was uploaded.' : '');
+  // back to the strip, or (a connected source's) the week in progress, a tap away
+  shown = w.week;
+  $('weeknav').hidden = kind !== 'yours' || (!provider && pick.source !== 'files');
+  $('so-far').hidden = !provider || w.week === recentMondays(1)[0].week;
+  for (const b of $('strip').children) b.setAttribute('aria-pressed', String(b.dataset.week === shown));
+  if (kind === 'yours') {
+    // a reload, or Back from the share page, keeps the week yours and named; sessionStorage never leaves this tab
+    try { sessionStorage.setItem('ph-mine', JSON.stringify({ code: w.code, named: w.named, name })); } catch {}
+    history.replaceState(null, '', planetLink(w.code)); // the bar shows no names
+  }
+  scrollTo(0, 0);
+  play(seen(w.code) || still);
+}
+
+function svgNode(markup) {
+  const tpl = document.createElement('template');
+  tpl.innerHTML = markup.trim();
+  const node = tpl.content.firstElementChild;
+  if (!node) return null;
+  node.setAttribute('aria-hidden', 'true');
+  node.setAttribute('focusable', 'false');
+  return node;
+}
+const loginSvg = svgNode(connectSvg);
+if (loginSvg) {
+  $('strava-login').replaceChildren(loginSvg);
+  $('strava-login').setAttribute('aria-label', 'Connect with Strava');
+}
+for (const id of ['strava-powered', 'strava-stage-mark', 'ledger-mark']) {
+  const node = svgNode(poweredSvg);
+  if (node) $(id).append(node);
+}
+function showStrava(configured, connected) {
+  $('strava-offer').hidden = !configured || connected;
+  $('strava-box').hidden = !configured || !connected;
+}
+function showGarmin(configured, connected) {
+  $('garmin-offer').hidden = !configured || connected;
+  $('garmin-box').hidden = !configured || !connected;
+}
+// Garmin's other weeks: this week so far first, last week picked
+function fillMondays(list, name, weeks) {
+  $(list).replaceChildren(...weeks.map((w, k) => {
+    const label = document.createElement('label');
+    label.className = 'week';
+    const radio = Object.assign(document.createElement('input'), { type: 'radio', name, value: w.week, checked: k === 1 });
+    const text = document.createElement('span');
+    text.append(Object.assign(document.createElement('strong'), { textContent: k ? `Week of ${longDate(w.week)}` : `This week so far · ${longDate(w.week)}` }));
+    label.append(radio, text);
+    return label;
+  }));
+}
+// What this site can connect (each Function says whether it's switched on) and what this browser has connected
+let sourcesIn = false, stravaOn = false;
+async function loadSources(justConnected) {
+  sourcesIn = true;
+  const off = { configured: false, connected: false };
+  const [strava, garmin] = await Promise.all([stravaStatus().catch(() => off), garminStatus().catch(() => off)]);
+  const names = [garmin.configured && 'Garmin', strava.configured && 'Strava'].filter(Boolean);
+  $('source-chooser').hidden = !names.length;
+  $('strava-off').hidden = strava.configured;
+  if (names.length) {
+    $('chooser-title').textContent = `${names.join(', ')} or files`;
+    $('bring-lede').textContent = `Connect ${names.join(' or ')} and your last full week paints itself. Or pick your watch's .fit files. Files stay in this browser and are never uploaded.`;
+  }
+  stravaOn = strava.connected;
+  showStrava(strava.configured, strava.connected);
+  showGarmin(garmin.configured, garmin.connected);
+  if (garmin.connected) fillMondays('garmin-weeks', 'garmin-week', garminMondays());
+  // back from a consent page: Connect was the one click, so last week paints with no other
+  if (justConnected === 'strava') {
+    if (strava.connected) paintStrava();
+    else if (strava.configured) $('strava-note').textContent = "Strava said yes, but this browser didn't keep the connection. Allow cookies for this site, then connect again.";
+  } else if (justConnected === 'garmin') {
+    if (garmin.connected) paintGarmin(null, GARMIN_TRIES);
+    else if (garmin.configured) $('garmin-note').textContent = "Garmin said yes, but this browser didn't keep the connection. Allow cookies for this site, then connect again.";
+  }
+  // Strava's weeks into the strip alongside, and a batch cut short carries on
+  if (strava.connected && pick.source !== 'files') stravaWeeks(PICK_WEEKS).catch(stripTrouble);
+  const left = loadBatch();
+  if (left) runBatch(left);
+}
+$('use-files').addEventListener('click', () => {
+  $('drop').scrollIntoView({ block: 'nearest', behavior: still ? 'auto' : 'smooth' });
+  $('files').focus();
+});
+// One week from Strava into a planet, in full (its streams): a week tapped in the strip, or with none last week, the
+// last full one (or when that had nothing in it, the newest week before it that has)
+async function paintStrava(weekId = null) {
+  const buttons = [$('strava-latest'), $('so-far')];
+  for (const b of buttons) b.disabled = true;
+  $('strip').setAttribute('aria-busy', 'true');
+  $('strava-note').textContent = `Asking Planet Creator's Cloudflare Function for ${weekId ? 'that week' : 'last week'}…`;
+  const [thisWeek, lastWeek] = recentMondays(2).map((m) => m.week);
+  ledgerMode = 'strava';
+  ledgerWhat = 'the selected week';
+  ledgerState = 'pending';
+  sent.length = 0;
+  watching = true;
+  ledger();
+  try {
+    let result = await fetchWeek(weekId || lastWeek);
+    let found = await weeksOf(result.activities);
+    let older = false;
+    if (!found.length && !weekId) {
+      older = await stravaWeeks(PICK_WEEKS).then(() => true, () => false);
+      const newest = pick.mondays.find((m) => m !== thisWeek && pick.weeks.get(m));
+      if (newest) {
+        result = await fetchWeek(newest);
+        found = await weeksOf(result.activities);
+      }
+    }
+    ledgerWhat = 'the selected week';
+    ledgerState = 'done';
+    ledger();
+    if (!found.length) {
+      $('strava-note').textContent = weekId ? `Strava had no activities in the week of ${longDate(weekId)}.`
+        : older ? `Strava had no activities in your last ${PICK_WEEKS} weeks. Older weeks work from files.` : 'Strava had no activities last week. Pick another week, or use files.';
+      return;
+    }
+    weekWarning = result.warning || (result.detail === 'summary' ? "Strava's request budget was tight, so this planet used summary detail and has no heart-rate zones." : '');
+    weekGarmin = result.garmin;
+    $('strava-note').textContent = '';
+    upgrade(found[0], result);
+    showWeeks(found, 'strava', result.detail);
+  } catch (error) {
+    ledgerState = 'failed';
+    ledger();
+    if (error.status === 401) {
+      showStrava(true, false);
+      $('strava-settings').hidden = false;
+    }
+    const when = Number.isFinite(error.retryAfter) ? ` Try again after ${new Date(Date.now() + error.retryAfter * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.` : ' Try again.';
+    const why = error.status === 429 ? 'Strava is limiting requests.' : (error.message || 'Could not fetch that week.');
+    $('strava-note').textContent = `${why}${when}`;
+  } finally {
+    for (const b of buttons) b.disabled = false;
+    $('strip').removeAttribute('aria-busy');
+  }
+}
+$('strava-latest').addEventListener('click', () => paintStrava());
+// a week the shelf has from a batch (summary detail) is kept again from the full detail just fetched
+async function upgrade(w, result) {
+  if (result.detail !== 'streams') return;
+  const kept = await getPlanet(w.week).catch(() => null);
+  if (kept?.detail === 'summary') await keep(w, { source: 'strava', detail: 'streams', garmin: result.garmin }).catch(() => {});
+}
+// One week from Garmin into a planet, read through Junction. Right after connecting, Garmin is still sending its history to
+// Junction a piece at a time (docs.junction.com/wearables/guides/garmin), so an empty last week is asked for again every
+// 15 seconds, GARMIN_TRIES times, before the page says so.
+const GARMIN_TRIES = 16, GARMIN_RETRY_MS = 15000;
+let garminWait = 0;
+async function paintGarmin(weekId = null, tries = 0, waited = false) {
+  clearTimeout(garminWait);
+  const buttons = [$('garmin-latest'), $('garmin-fetch'), $('so-far')];
+  for (const b of buttons) b.disabled = true;
+  $('garmin-weeks').setAttribute('aria-busy', 'true');
+  if (!waited) $('garmin-note').textContent = `Asking Planet Creator's Cloudflare Function for ${weekId ? 'that week' : 'last week'}…`;
+  const selected = weekId ? ` The week of ${longDate(weekId)} is still selected.` : '';
+  ledgerMode = 'garmin';
+  ledgerState = 'pending';
+  sent.length = 0;
+  watching = true;
+  ledger();
+  try {
+    const result = await fetchGarminWeek(weekId || recentMondays(2)[1].week);
+    ledgerState = 'done';
+    ledger();
+    weekWarning = result.warning;
+    weekGarmin = result.garmin;
+    const found = await weeksOf(result.activities);
+    if (!found.length && !weekId && tries > 0) {
+      $('garmin-note').textContent = 'Garmin is still sending your weeks to Junction. The first time can take a few minutes. This page checks again every 15 seconds.';
+      garminWait = setTimeout(() => paintGarmin(null, tries - 1, true), GARMIN_RETRY_MS);
+      return;
+    }
+    if (!found.length) {
+      $('garmin-note').textContent = weekId ? `Garmin sent no activities for the week of ${longDate(weekId)}. That week is still selected.`
+        : waited ? "Garmin hasn't sent last week yet. Tap Paint last week again in a few minutes."
+        : 'Garmin had no activities last week. Pick another week, or use files.';
+      $('garmin-more').open = true;
+      return;
+    }
+    $('garmin-note').textContent = '';
+    showWeeks(found, 'garmin');
+  } catch (error) {
+    ledgerState = 'failed';
+    ledger();
+    if (error.status === 401) showGarmin(true, false); // the connection is gone: Connect Garmin again
+    const when = error.status === 401 ? '' : Number.isFinite(error.retryAfter) ? ` Try again after ${new Date(Date.now() + error.retryAfter * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.` : ' Try again.';
+    $('garmin-note').textContent = `${error.message}${when}${selected}`;
+  } finally {
+    for (const b of buttons) b.disabled = false;
+    $('garmin-weeks').removeAttribute('aria-busy');
+  }
+}
+$('garmin-latest').addEventListener('click', () => paintGarmin());
+$('garmin-fetch').addEventListener('click', () => {
+  const weekId = document.querySelector('input[name="garmin-week"]:checked')?.value;
+  if (weekId) paintGarmin(weekId);
+});
+
+// ------------------------------------------------------------------ the stage's way back
+// Other weeks: the reading stops and the strip (or the sources) comes back; This week so far: the week in progress
+function otherWeeks() {
+  run++; // the reading's pauses go stale, so it stops where it is
+  app = null;
+  frame.src = 'about:blank';
+  document.body.classList.remove('landed');
+  parkCredit(false);
+  $('back').hidden = true;
+  $('stage').hidden = true;
+  $('bring').hidden = false;
+  document.title = 'Your week · Planet Creator';
+  history.replaceState(null, '', location.pathname);
+  if (!sourcesIn) loadSources(null);
+  if (!$('picker').hidden) drawStrip();
+  ($('picker').hidden ? $('bring') : $('picker')).scrollIntoView({ block: 'start' });
+}
+$('other-weeks').addEventListener('click', otherWeeks);
+$('so-far').addEventListener('click', () => {
+  const source = week.source;
+  otherWeeks();
+  (source === 'garmin' ? paintGarmin : paintStrava)(recentMondays(1)[0].week);
+});
+
+// ------------------------------------------------------------------ the week strip
+// Every week a source has, oldest to newest, a card each: its days as bars (each session in its sport's colour, as the
+// galaxy draws it, as tall as its minutes), its numbers and its race; a tap paints it. Strava's weeks come as summaries
+// a quarter at a time (fetchRange: a read a page), paced by the read budget each answer reports, and a week tapped is
+// fetched again in full. A file's weeks are all in already.
+const RGB = Object.fromEntries(SPORTS.map((s) => [s.key, s.color.map((v) => Math.round(v * 255)).join(' ')]));
+const rgbOf = (a) => { const sort = sortOf(a); return RGB[sort === 'run' ? 'runs' : sort] || RGB.other; };
+const QUARTER = 13, PICK_WEEKS = 26, YEAR = 52, RESERVE = 45;
+// Mondays newest first, and each one's week once it's read ({ w, detail, garmin }), or null when it had no sessions
+const pick = { source: null, mondays: [], weeks: new Map() };
+let shown = null; // the week on the stage
+let budget = null, budgetAt = 0; // what's left of Strava's reads for this site, as its last answer said, and when
+const orbUrl = new Map(); // Monday → its painted still, once the shelf has one
+const el = (tag, className, text) => Object.assign(document.createElement(tag), { className }, text == null ? {} : { textContent: text });
+const clock = (ms) => new Date(Date.now() + ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const shortDate = (week) => new Date(`${week}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+const hours = (min) => `${(min / 60).toFixed(1)} h`;
+const distance = (mi) => (metric ? `${Math.round(mi * 1.609344)} km` : `${mi < 9.95 ? mi.toFixed(1) : Math.round(mi)} mi`);
+const climb = (m) => (metric ? `${Math.round(m)} m up` : `${Math.round(m * 3.28084).toLocaleString('en-US')} ft up`);
+// a week's sessions by day, Monday first (each start is already its own local time)
+function daysOf(w) {
+  const t0 = Date.parse(`${w.week}T00:00:00Z`), by = Array.from({ length: 7 }, () => []);
+  for (const a of w.seed.activities) by[Math.min(6, Math.max(0, Math.floor((Date.parse(a.startedAt) - t0) / 864e5)))].push(a);
+  return by;
+}
+const minutes = (list) => list.reduce((t, a) => t + (a.activeS || 0) / 60, 0);
+function mainRgb(w) {
+  const by = new Map();
+  for (const a of w.seed.activities) by.set(rgbOf(a), (by.get(rgbOf(a)) || 0) + (a.activeS || 1));
+  return [...by].sort((a, b) => b[1] - a[1])[0]?.[0] || RGB.other;
+}
+// the days as bars: a day's height the square root of its minutes against the strip's biggest day (so an easy day
+// still shows), shared among its sessions by their minutes, each in its sport's colour; a ring over a race's day
+function bars(w, scale) {
+  const svg = [];
+  daysOf(w).forEach((list, d) => {
+    const x = d * 9;
+    let y = 42;
+    if (!list.length) svg.push(`<circle cx="${x + 3}" cy="41" r="1.1" fill="currentColor"/>`);
+    const day = minutes(list), tall = 38 * Math.sqrt(Math.min(1, day / scale));
+    for (const a of list) {
+      const h = Math.max(1.5, (tall * (a.activeS || 0)) / 60 / (day || 1));
+      y -= h;
+      svg.push(`<rect x="${x}" y="${y.toFixed(1)}" width="6" height="${h.toFixed(1)}" rx="1" fill="rgb(${rgbOf(a)})"/>`);
+    }
+    if (list.some((a) => a.isRace)) svg.push(`<circle class="race" cx="${x + 3}" cy="${(y - 4.4).toFixed(1)}" r="2.4"/>`);
+  });
+  const tpl = document.createElement('template');
+  tpl.innerHTML = `<svg class="wk-days" viewBox="0 -6 60 48" aria-hidden="true">${svg.join('')}</svg>`;
+  return tpl.content.firstElementChild;
+}
+function card(monday, got, scale, labels) {
+  const b = el('button', 'wk');
+  b.type = 'button';
+  b.dataset.week = monday;
+  b.setAttribute('aria-pressed', String(monday === shown));
+  const name = labels[monday] || `Week of ${longDate(monday)}`;
+  b.append(el('span', 'wk-when', labels[monday] || shortDate(monday)));
+  if (!got) { // not read yet, or no sessions
+    b.disabled = true;
+    b.append(el('span', 'wk-art'), el('span', 'wk-nums', got === null ? 'No sessions' : '…'));
+    b.setAttribute('aria-label', `${name}: ${got === null ? 'no sessions' : 'not read yet'}`);
+    return b;
+  }
+  const { w } = got, s = w.stats;
+  const orb = el('span', 'wk-orb');
+  orb.style.setProperty('--c', mainRgb(w));
+  if (orbUrl.has(monday)) orb.append(Object.assign(new Image(), { alt: '', src: orbUrl.get(monday), className: 'in' }));
+  const art = el('span', 'wk-art');
+  art.append(orb, bars(w, scale));
+  const count = `${s.sessions} session${s.sessions === 1 ? '' : 's'}`;
+  const nums = el('span', 'wk-nums', [hours(s.min), s.mi >= 0.5 ? distance(s.mi) : ''].filter(Boolean).join(' · '));
+  nums.append(el('span', '', count), s.race ? el('span', 'wk-race', s.race) : el('span', '', s.climbM >= 1 ? climb(s.climbM) : w.made));
+  b.append(art, nums);
+  b.setAttribute('aria-label', `${name}: ${w.name}. ${count}, ${hours(s.min)}${s.race ? `, ${s.race}` : ''}.`);
+  return b;
+}
+function drawStrip() {
+  const strip = $('strip'), end = !strip.dataset.drawn || strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 8;
+  const [thisWeek, lastWeek] = recentMondays(2).map((m) => m.week);
+  const labels = { [thisWeek]: 'This week so far', [lastWeek]: 'Last week' };
+  const read = pick.mondays.map((m) => pick.weeks.get(m)).filter(Boolean);
+  const scale = Math.max(60, ...read.flatMap(({ w }) => daysOf(w).map(minutes)));
+  strip.replaceChildren(...[...pick.mondays].reverse().map((m) => card(m, pick.weeks.get(m), scale, labels)));
+  if (end) strip.scrollLeft = strip.scrollWidth; // the newest in view, until the visitor scrolls back
+  if (strip.clientWidth) strip.dataset.drawn = '1';
+  stripNote();
+  stills();
+}
+let stripSay = ''; // what the note says instead while Strava's reads wait, or after a read failed
+function stripNote(say = stripSay) {
+  const read = pick.mondays.map((m) => pick.weeks.get(m)).filter(Boolean).map(({ w }) => w);
+  const sessions = read.reduce((t, w) => t + w.stats.sessions, 0), min = read.reduce((t, w) => t + w.stats.min, 0);
+  const waiting = pick.mondays.some((m) => !pick.weeks.has(m));
+  $('picker-note').textContent = say || (pick.source === 'strava' && waiting && !read.length ? 'Reading your weeks from Strava…'
+    : `${pick.source === 'strava' ? `Your last ${pick.mondays.length} weeks on Strava` : `${read.length} weeks in your files`}: ${sessions} sessions, ${Math.round(min / 60)} hours. Tap a week to paint it.`);
+}
+// the planets the shelf has painted for these weeks (a batch's, or one kept by hand), into their cards' dots
+async function stills() {
+  for (const m of pick.mondays) {
+    if (orbUrl.has(m) || !pick.weeks.get(m)) continue;
+    const p = await getPlanet(m).catch(() => null);
+    const blob = p && (await getThumb(p.link).catch(() => null));
+    if (blob) orbStill(m, blob);
+  }
+}
+function orbStill(monday, blob) {
+  if (!orbUrl.has(monday)) orbUrl.set(monday, URL.createObjectURL(blob));
+  const orb = $('strip').querySelector(`[data-week="${monday}"] .wk-orb`);
+  if (!orb || orb.querySelector('img')) return;
+  const img = Object.assign(new Image(), { alt: '', decoding: 'async', src: orbUrl.get(monday) });
+  img.addEventListener('load', () => img.classList.add('in'), { once: true });
+  orb.append(img);
+}
+function showPicker() {
+  const n = pick.mondays.length, files = pick.source === 'files';
+  $('picker').hidden = $('strip').hidden = false;
+  $('batch-12').textContent = !files ? 'Paint my last 12 weeks' : n > 12 ? 'Paint the newest 12' : `Paint all ${n} weeks`;
+  $('batch-year').textContent = !files ? 'Paint my year' : n > YEAR ? `Paint the newest ${YEAR}` : `Paint all ${n} weeks`;
+  $('batch-year').hidden = files && n <= 12;
+  drawStrip();
+}
+$('strip').addEventListener('click', (e) => {
+  const b = e.target.closest('.wk');
+  if (!b || b.disabled) return;
+  const got = pick.weeks.get(b.dataset.week);
+  if (pick.source === 'strava') paintStrava(b.dataset.week);
+  else if (got) start(got.w, 'yours', got.w.name, 'files');
+});
+let touchedAt = 0; // the visitor's own scrolling of the strip, which a batch doesn't take over
+for (const type of ['pointerdown', 'wheel', 'touchmove']) $('strip').addEventListener(type, () => { touchedAt = Date.now(); }, { passive: true });
+function follow(b) {
+  if (!b || Date.now() - touchedAt < 4000) return;
+  const strip = $('strip');
+  strip.scrollTo({ left: b.offsetLeft - (strip.clientWidth - b.offsetWidth) / 2, behavior: still ? 'auto' : 'smooth' });
+}
+// ms until Strava's reads for this site allow a quarter's list again (0 while enough are left): the next quarter hour,
+// or for the day's reads the next midnight UTC
+function budgetWait() {
+  if (!budget) return 0;
+  const now = Date.now(), at = new Date(budgetAt);
+  const midnight = Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate() + 1), quarter = Math.ceil((budgetAt + 1) / 9e5) * 9e5;
+  if (budget.left[1] < RESERVE && now < midnight) return midnight - now;
+  if (budget.left[0] < RESERVE && now < quarter) return quarter - now;
+  return 0;
+}
+// a week's "Garmin [device model]" lines from its sessions' own: every model named, else plain Garmin if any had one
+function linesOf(acts) {
+  const all = acts.flatMap((a) => a.garmin || []), named = [...new Set(all.filter((line) => line !== 'Garmin'))];
+  return named.length ? garminLines(named) : all.length ? ['Garmin'] : [];
+}
+// The newest `count` Mondays into the strip, reading those it hasn't from Strava, newest quarter first. One read at a
+// time (the strip and a batch share them); none while Strava's reads for this site are low (the error says how long)
+let reads = Promise.resolve();
+function stravaWeeks(count) {
+  const job = reads.then(() => readWeeks(count));
+  reads = job.catch(() => {});
+  return job;
+}
+async function readWeeks(count) {
+  const mondays = recentMondays(count);
+  if (pick.source !== 'strava') {
+    Object.assign(pick, { source: 'strava', mondays: [], weeks: new Map() });
+    $('strava-box').lastElementChild.before($('picker'));
+  }
+  if (pick.mondays.length < count) {
+    pick.mondays = mondays.map((m) => m.week);
+    showPicker();
+  }
+  const missing = mondays.filter((m) => !pick.weeks.has(m.week));
+  for (let i = 0; i < missing.length; i += QUARTER) {
+    const wait = budgetWait();
+    if (wait) throw Object.assign(new Error("Strava's read budget for this site is low."), { wait });
+    const chunk = missing.slice(i, i + QUARTER);
+    ledgerMode = 'strava';
+    ledgerWhat = 'your weeks';
+    ledgerState = 'pending';
+    ledger();
+    let result;
+    try {
+      result = await fetchRange(chunk);
+    } catch (error) {
+      ledgerState = 'failed';
+      if (error.budget) [budget, budgetAt] = [error.budget, Date.now()];
+      ledger();
+      if (error.status === 429) error.wait = (error.retryAfter ?? 900) * 1000;
+      throw error;
+    }
+    if (result.budget) [budget, budgetAt] = [result.budget, Date.now()];
+    stripSay = '';
+    ledgerState = 'done';
+    ledger();
+    const found = await weeksOf(result.activities);
+    for (const m of chunk) {
+      const w = found.find((x) => x.week === m.week);
+      const own = result.activities.filter((a) => { const t = Date.parse(a.startedAt) / 1000; return t >= m.after && t < m.before; });
+      pick.weeks.set(m.week, w ? { w, detail: 'summary', garmin: linesOf(own) } : null);
+    }
+    drawStrip();
+  }
+}
+let stripRetry = 0;
+function stripTrouble(error) {
+  if (error.wait) {
+    stripSay = `Strava's read budget for this site is low, so the older weeks come after ${clock(error.wait)}.`;
+    stripNote();
+    clearTimeout(stripRetry);
+    stripRetry = setTimeout(() => stravaWeeks(PICK_WEEKS).catch(stripTrouble), error.wait + 2000);
+  } else if (error.status === 401) {
+    showStrava(true, false);
+    $('strava-note').textContent = error.message;
+  } else {
+    stripSay = `${error.message} The strip shows the weeks read so far.`;
+    stripNote();
+  }
+}
+
+// ------------------------------------------------------------------ a batch: many weeks onto the shelf at once
+// Each week is kept first (a summary never replaces a week kept from more detail), then painted here one at a time,
+// newest first: its still for the shelf and its globe for the galaxy (lib/paint.js), both kept in this browser. The
+// batch stays in localStorage until it's done, so one cut short carries on when make/ next opens; painting waits while
+// a week is open on the stage.
+const BATCH = 'ph-batch';
+let batching = false, batchTimer = 0;
+const loadBatch = () => { try { return JSON.parse(localStorage.getItem(BATCH)); } catch { return null; } };
+const keepBatch = (b) => { try { if (b) localStorage.setItem(BATCH, JSON.stringify(b)); else localStorage.removeItem(BATCH); } catch {} };
+const blobOf = (canvas) => new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.85));
+const act = (text, className, href) => Object.assign(el(href ? 'a' : 'button', className, text), href ? { href } : { type: 'button' });
+// what the app makes of the week (bodies/index.js `auto`) and why, kept with it as shelf/_ryan.mjs keeps Ryan's
+let bodies;
+async function bodyOf(seed) {
+  bodies ??= Promise.all([import('../planet/worlds/index.js'), import('../planet/bodies/index.js')]);
+  const [{ weekStats }, { bodyFor }] = await bodies;
+  const stats = weekStats(seed), body = bodyFor('auto', stats);
+  return { body: body?.id || 'rock', why: body?.reason?.(stats) || null };
+}
+// a week onto the shelf, with where it came from (source, detail, its Garmin lines) and its body
+async function keep(w, { source, detail, garmin }) {
+  await savePlanet({ link: `#p=${w.named}`, week: w.week, title: w.name, stats: w.stats, source, detail, garmin, savedAt: Date.now(), ...(await bodyOf(w.seed).catch(() => ({}))) });
+}
+function startBatch(count) {
+  const weeks = pick.source === 'strava' ? recentMondays(count + 1).slice(1).map((m) => m.week) : pick.mondays.slice(0, count);
+  runBatch({ source: pick.source, weeks, empty: [] });
+}
+$('batch-12').addEventListener('click', () => startBatch(12));
+$('batch-year').addEventListener('click', () => startBatch(YEAR));
+async function runBatch(b) {
+  if (batching) return;
+  batching = true;
+  clearTimeout(batchTimer);
+  keepBatch(b);
+  // the strip holds a file's weeks only until a reload (then they're on the shelf alone); Strava's while connected
+  if (b.source === 'files' ? pick.source !== 'files' : !stravaOn) $('log').after($('picker'));
+  $('picker').hidden = false;
+  if (!pick.mondays.length) { // carried on after a reload: the file's weeks are on the shelf, not in the strip
+    $('strip').hidden = true;
+    stripNote('Carrying on with the weeks you started.');
+  }
+  $('batch').hidden = false;
+  $('batch-row').hidden = true;
+  $('batch-acts').replaceChildren();
+  const line = (text) => { $('batch-line').textContent = text; };
+  const want = () => b.weeks.filter((m) => !b.empty.includes(m));
+  let trouble = null, done = 0;
+  try {
+    // the weeks not read yet: Strava's, a quarter at a time
+    if (b.source === 'strava' && stravaOn) {
+      line('Reading your weeks from Strava…');
+      const back = Math.max(...b.weeks.map((m) => Math.round((Date.parse(recentMondays(1)[0].week) - Date.parse(m)) / 6048e5)));
+      await stravaWeeks(Math.max(back + 1, pick.mondays.length)).catch((error) => { trouble = error; });
+    }
+    // each week read, kept; the empty ones noted so they're never asked for again
+    for (const m of b.weeks) {
+      if (pick.source !== b.source || !pick.weeks.has(m) || b.empty.includes(m)) continue;
+      const got = pick.weeks.get(m);
+      if (!got) { b.empty.push(m); continue; }
+      const kept = await getPlanet(m).catch(() => null);
+      if (!kept || kept.detail === 'summary') await keep(got.w, { source: b.source, detail: got.detail, garmin: got.garmin });
+    }
+    keepBatch(b);
+    // each kept week painted, newest first
+    const kept = (await Promise.all(want().map((m) => getPlanet(m).catch(() => null)))).filter(Boolean);
+    const painted = async (p) => !!(await getThumb(p.link).catch(() => null)) && !!(await getGlobe(p.link).catch(() => null));
+    for (const p of kept) if (await painted(p)) done++;
+    const bar = () => { $('batch-fill').style.width = `${(100 * done) / Math.max(1, want().length)}%`; };
+    bar();
+    const { paint, paintGlobe } = await import('../lib/paint.js');
+    for (const p of kept) {
+      if (await painted(p)) continue;
+      while (!$('stage').hidden) await new Promise((resolve) => setTimeout(resolve, 500)); // a week open on the stage first
+      line(`Painting ${done + 1} of ${want().length}: the week of ${longDate(p.week)}`);
+      const painting = $('strip').querySelector(`[data-week="${p.week}"]`);
+      painting?.classList.add('painting');
+      follow(painting);
+      if (!(await getThumb(p.link).catch(() => null))) {
+        const blob = await blobOf(await paint(p.link));
+        await putThumb(p.link, blob);
+        orbStill(p.week, blob);
+      }
+      if (!(await getGlobe(p.link).catch(() => null))) {
+        const globe = await paintGlobe(p.link);
+        await putGlobe(p.link, await blobOf(globe.canvas), globe.still);
+      }
+      painting?.classList.remove('painting');
+      done++;
+      bar();
+    }
+    // what's left waits on Strava, or the batch is done
+    const unread = want().filter((m) => !kept.some((p) => p.week === m));
+    if (unread.length && b.source === 'strava') {
+      if (trouble?.wait) {
+        line(`${done} of ${want().length} painted. Strava's read budget for this site is low, so the rest come after ${clock(trouble.wait)}.`);
+        $('batch-acts').replaceChildren(act('Carry on now', 'btn quiet'));
+        $('batch-acts').firstChild.addEventListener('click', () => { budget = null; runBatch(b); }); // the next answer says what's left
+        batchTimer = setTimeout(() => runBatch(b), trouble.wait + 2000);
+      } else {
+        line(`${done} of ${want().length} painted. ${trouble && trouble.status !== 401 ? trouble.message : 'Connect Strava again for the rest.'}`);
+        $('batch-acts').replaceChildren(act('Try again', 'btn quiet'));
+        $('batch-acts').firstChild.addEventListener('click', () => runBatch(b));
+      }
+      return;
+    }
+    keepBatch(null);
+    line(`${done} week${done === 1 ? ' is' : 's are'} on your shelf, each painted in this browser.`);
+    $('batch-acts').replaceChildren(act('Open your galaxy', 'btn', '../galaxy/?mine'), act('Your shelf', 'word', '../shelf/'));
+  } catch (error) {
+    line(`${done} painted, then the batch stopped: ${error.message}`);
+    $('batch-acts').replaceChildren(act('Try again', 'btn quiet'));
+    $('batch-acts').firstChild.addEventListener('click', () => runBatch(b));
+  } finally {
+    batching = false;
+  }
+}
+$('garmin-disconnect').addEventListener('click', async () => {
+  clearTimeout(garminWait);
+  const button = $('garmin-disconnect');
+  button.disabled = true;
+  try {
+    const result = await disconnectGarmin();
+    showGarmin(true, false);
+    $('garmin-note').textContent = result.deleted ? 'Disconnected. Junction has ended the Garmin connection and erases what Garmin sent within 7 days.' : result.message;
+  } catch (error) {
+    $('garmin-note').textContent = error.message; // Junction didn't confirm, so this browser stays connected and can try again
+  } finally {
+    button.disabled = false;
+  }
+});
+$('strava-disconnect').addEventListener('click', async () => {
+  const button = $('strava-disconnect');
+  button.disabled = true;
+  try {
+    const result = await disconnectStrava();
+    showStrava(true, false);
+    if (result.revoked) {
+      $('strava-settings').hidden = true;
+      $('strava-note').textContent = 'Disconnected. Strava access is revoked.';
+    } else {
+      $('strava-settings').hidden = false;
+      $('strava-note').textContent = result.message || 'Planet Creator has no token to revoke.';
+    }
+  } catch (error) {
+    // the Function clears the cookies whatever Strava answers, so this browser isn't connected any more
+    showStrava(true, false);
+    $('strava-settings').hidden = false;
+    $('strava-note').textContent = `${error.message} If this tab has no token, revoke access in your Strava settings.`;
+  } finally {
+    button.disabled = false;
+  }
+});
+
+// the Functions send a failed connection back here (functions/api/strava/ and functions/api/garmin/, callback.js and
+// login.js) with why it failed
+const STRAVA_WHY = {
+  off: "Connecting Strava isn't switched on for this site yet. Files work.",
+  denied: "Strava didn't connect, since the request was declined. Try again, or use files.",
+  scope: 'Strava connected without permission to read your activities, so nothing was kept. Connect again and leave both boxes ticked.',
+  expired: 'That Strava connection took too long. Start it again.',
+  busy: 'Strava is busy. Try again in 15 minutes, or use files.',
+};
+const GARMIN_WHY = {
+  off: "Connecting Garmin isn't switched on for this site yet. Files work.",
+  denied: "Garmin didn't connect, since the request was declined. Try again, or use files.",
+  scope: 'Garmin connected without every permission Junction asks for, so nothing was kept. Connect again and allow them all.',
+  expired: 'That Garmin connection took too long. Start it again.',
+  busy: 'Junction is busy. Try again in a few minutes, or use files.',
+};
+const params = new URLSearchParams(location.search);
+// functions/api/strava/callback.js or functions/api/garmin/callback.js, on success
+const justConnected = ['strava', 'garmin'].includes(params.get('connected')) ? params.get('connected') : null;
+if (params.get('error') === 'garmin') $('garmin-note').textContent = GARMIN_WHY[params.get('why')] || "Garmin couldn't finish connecting. Try again, or use files.";
+else if (params.has('error')) $('strava-note').textContent = STRAVA_WHY[params.get('why')] || "Strava couldn't finish connecting. Try again, or use files.";
+if (params.has('error') || params.has('connected')) {
+  for (const key of ['error', 'error_description', 'why', 'connected']) params.delete(key);
+  const q = params.toString();
+  history.replaceState(null, '', `${location.pathname}${q ? `?${q}` : ''}${location.hash}`);
+}
+const sample = SAMPLES.find((s) => s.key === params.get('sample'));
+const packed = new URLSearchParams(location.hash.slice(1)).get('p');
+const linkedSource = ['strava', 'garmin'].includes(params.get('source')) ? params.get('source') : 'files';
+const linkedDetail = linkedSource === 'strava' && params.get('detail') === 'summary' ? 'summary' : null;
+if (linkedDetail === 'summary') weekWarning = "Strava's request budget was tight, so this planet used summary detail and has no heart-rate zones.";
+if (linkedSource !== 'files') weekGarmin = garminLines(params.getAll('garmin')); // a URL value: model names only
+let mine = null;
+try { mine = JSON.parse(sessionStorage.getItem('ph-mine')); } catch {}
+try {
+  if (sample) start(weekOf(sample.code), 'sample', sample.name);
+  else if (packed && mine?.code === packed) start(weekOf(mine.named), 'yours', mine.name, linkedSource, linkedDetail);
+  else if (packed) start(weekOf(packed), 'shared', undefined, linkedSource, linkedDetail);
+} catch (error) {
+  $('progress').textContent = `That link didn't open: ${error.message}`;
+}
+if (!$('bring').hidden) loadSources(justConnected);
+</script>
+</body>
+</html>

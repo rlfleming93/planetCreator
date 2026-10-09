@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planet Creator · your week of training, as a planet</title>
+<meta name="description" content="Your week of training, painted as a world you can run on. Bring your Garmin files or try a sample week. It all happens in your browser.">
+<meta property="og:title" content="Planet Creator">
+<meta property="og:description" content="Your week of training, painted as a world you can run on.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://planet.fleming.run/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="628">
+<meta property="og:url" content="https://planet.fleming.run/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a0d20">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23efe6d2' stroke='%231b2540' stroke-width='1.5'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="/kit/icon-192.png">
+<link rel="canonical" href="https://planet.fleming.run/">
+<!-- the weeks, asked for with the page rather than after its scripts (the lap waits on them) -->
+<link rel="preload" href="shelf/ryan.json" as="fetch" crossorigin>
+<link rel="stylesheet" href="lib/space.css">
+<link rel="stylesheet" href="lib/ink.css">
+<style>
+  /* the front door: the words at the left, and beside them two years of real weeks around the planet that started
+     it, on the night, the way the galaxy shows them: point at a week to read it, press the one in the middle to let
+     it turn. Below the fold, how a week becomes a world. */
+  :root {
+    /* a pen loop round a race week (the shelf's own mark), and a finer pen for the big one in the middle, both in the
+       vermilion lit to read on the night */
+    --race-loop: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M57 8 C 81 10, 94 30, 92 53 C 90 77, 70 93, 47 92 C 24 91, 7 72, 8 49 C 9 26, 28 8, 51 7 C 60 6.6, 68 8.6, 75 12.5' fill='none' stroke='%23e87a5e' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+    --race-loop-fine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M51 7.4 C 75 7.8, 93 25, 93 50.4 C 93 75.6, 74 93.2, 49.6 92.6 C 25.4 92, 7.2 74.4, 7.6 50 C 8 25.4, 26.4 7.2, 51 7.4' fill='none' stroke='%23e87a5e' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");
+  }
+
+  /* the words in the left column, the lap beside them; on a phone the lap comes straight after the way in, and the
+     rest of the words under it */
+  .door { display: grid; grid-template-columns: minmax(300px, 420px) minmax(0, 1fr); grid-template-rows: 1fr 1fr; grid-template-areas: "say stage" "more stage"; gap: 18px clamp(24px, 3vw, 56px); padding: 10px var(--edge) 0; min-height: calc(100svh - 62px); overflow-x: clip; }
+  .say { grid-area: say; align-self: end; display: grid; gap: 18px; }
+  .more { grid-area: more; align-self: start; display: grid; gap: 18px; }
+  .say .title { font-size: clamp(36px, 3.6vw, 58px); }
+  .say .lede { font-size: clamp(16.5px, 1.25vw, 19px); max-width: 46ch; }
+  .say .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; margin-top: 2px; }
+  .proof { display: grid; gap: 4px; font-size: 15px; }
+  .others { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+  .others #others { display: flex; flex-wrap: wrap; gap: 2px 12px; }
+  .proof b { font-style: normal; font-weight: 500; color: var(--fg-soft); }
+  .legend { font-style: italic; font-size: 14.5px; line-height: 1.5; color: var(--fg-quiet); max-width: 44ch; }
+  .legend b { font-style: normal; font-weight: 500; color: var(--fg); }
+
+  /* ------------------------------------------------------------------ the lap */
+  .stage { grid-area: stage; align-self: center; position: relative; width: min(100%, calc(100svh - 124px), 800px); margin: 0 auto; }
+  /* the glow the laps sit in, as the galaxy's arms sit in theirs */
+  .stage::before { content: ""; position: absolute; inset: -6% -10%; pointer-events: none; background: radial-gradient(closest-side, rgba(96, 78, 160, .2), rgba(40, 52, 118, .12) 52%, transparent 74%); }
+  .lap { position: relative; width: 100%; aspect-ratio: 1; touch-action: manipulation; }
+  .lap.pointing { cursor: pointer; }
+  .lap svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+  .ring { fill: none; stroke: var(--cream); stroke-opacity: .28; stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .ring.twin { stroke-opacity: .1; }
+  .lap-arc { fill: none; stroke: var(--cream); stroke-opacity: .46; stroke-width: 1.6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  .wash { fill: none; stroke: var(--cream); stroke-opacity: .05; stroke-width: .05; }
+  .tick { stroke: var(--cream); stroke-opacity: .32; stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .spoke { stroke: var(--vermilion-lit); stroke-width: 1.3; stroke-linecap: round; stroke-dasharray: 1 5; vector-effect: non-scaling-stroke; opacity: 0; transition: opacity .25s ease; }
+  .spoke.on { opacity: .85; }
+  .label { position: absolute; translate: -50% -50%; white-space: nowrap; pointer-events: none; font-style: italic; font-size: 14px; color: var(--fg-quiet); }
+  /* each year in its own ink (the galaxy's arms), written on its ring with the night knocked out behind it */
+  .label.year { font-style: normal; font-size: 13px; letter-spacing: .2em; padding: 0 7px; background: radial-gradient(closest-side, var(--night) 62%, transparent); }
+
+  /* a week: a still painted by the real app, feathered into the night */
+  .p { appearance: none; position: absolute; display: block; border: 0; padding: 0; background: none; border-radius: 50%; cursor: pointer; }
+  .p img { display: block; width: 100%; height: auto; aspect-ratio: 1; transition: transform .4s var(--ease-out); }
+  .p.hot img, .p:focus-visible img { transform: scale(var(--grow, 1.35)); }
+  .p:focus-visible { outline: 1px dashed var(--hot); outline-offset: 3px; }
+  .p.blank img { visibility: hidden; }
+  .p.blank::after { content: ""; position: absolute; inset: 6%; border-radius: 50%; background: var(--night-lift); }
+  .p.race::before { content: ""; position: absolute; inset: -19%; z-index: 1; background: var(--race-loop) center / 100% 100% no-repeat; pointer-events: none; }
+  .p.hot { z-index: 2; }
+
+  /* the week in the middle: the still first, the real app once it is asked for, in a soft glow */
+  .focus { appearance: none; position: absolute; left: 50%; top: 42%; width: 32%; aspect-ratio: 1; translate: -50% -50%; border: 0; padding: 0; background: none; cursor: pointer; }
+  .focus::before { content: ""; position: absolute; inset: -24%; border-radius: 50%; background: radial-gradient(closest-side, rgba(239, 230, 210, .13), rgba(239, 230, 210, .04) 56%, transparent); pointer-events: none; }
+  .focus::after { content: ""; position: absolute; inset: -11%; background: var(--race-loop-fine) center / 100% 100% no-repeat; pointer-events: none; opacity: 0; transition: opacity .3s ease; }
+  .focus.race::after { opacity: 1; }
+  .focus img, .focus iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .focus img { opacity: 0; transition: opacity .55s ease; -webkit-mask: radial-gradient(closest-side, #000 88%, transparent 100%); mask: radial-gradient(closest-side, #000 88%, transparent 100%); }
+  .focus img.on { opacity: 1; }
+  .focus.live img { opacity: 0; }
+  .focus iframe { inset: -11%; width: 122%; height: 122%; border: 0; background: transparent; opacity: 0; transition: opacity .8s ease; pointer-events: none; -webkit-mask: radial-gradient(closest-side, #000 80%, transparent 97%); mask: radial-gradient(closest-side, #000 80%, transparent 97%); }
+  .focus.live iframe { opacity: 1; }
+  .focus:focus-visible { outline: 1px dashed var(--hot); outline-offset: 12px; border-radius: 50%; }
+
+  .readout { position: absolute; left: 50%; top: 60%; width: min(36%, 280px); min-height: 96px; translate: -50% 0; display: grid; gap: 3px; justify-items: center; text-align: center; pointer-events: none; }
+  .readout b { font-weight: 400; font-size: 22px; line-height: 1.2; letter-spacing: -.01em; text-wrap: balance; }
+  .readout span { font-size: 14.5px; line-height: 1.4; color: var(--fg-soft); }
+  .readout .when, .readout .nums, .readout .race { white-space: nowrap; }
+  .readout .when { font-style: italic; }
+  .readout .race { font-style: italic; color: var(--mark); }
+  .readout a { pointer-events: auto; font-size: 15px; }
+
+  /* ------------------------------------------------------------------ how a week becomes a world */
+  .how { display: grid; gap: 30px; padding: 84px var(--edge) 0; overflow-x: clip; /* the planets' glows stop at the screen's edge */ }
+  .how-head { display: grid; gap: 10px; max-width: 60ch; }
+  .how-head .h2 { font-size: clamp(28px, 2.8vw, 40px); }
+  .steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(16px, 2.4vw, 38px); margin: 0; padding: 0; list-style: none; }
+  .steps li { display: grid; gap: 9px; align-content: start; }
+  .steps .num { font-style: italic; font-size: 15px; color: var(--mark); }
+  .steps h3 { font-weight: 400; font-size: 19.5px; line-height: 1.25; letter-spacing: -.01em; text-wrap: balance; }
+  @media (min-width: 701px) { .steps h3 { min-height: 2.5em; } }
+  .steps p { font-size: 15.5px; line-height: 1.55; color: var(--fg-soft); }
+  .steps a { color: var(--fg); }
+  .marks { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; margin-top: 2px; }
+  .marks span { display: flex; align-items: center; gap: 8px; font-style: italic; font-size: 14px; color: var(--fg-quiet); }
+  .marks svg { flex: none; width: 26px; height: 15px; overflow: visible; stroke: var(--cream-soft); fill: none; stroke-width: 1.15; stroke-linecap: round; }
+
+  .shown { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(18px, 3vw, 52px); align-items: end; border-top: 1px solid var(--line-faint); padding-top: 26px; }
+  .shown figure { position: relative; display: grid; gap: 10px; justify-items: center; text-align: center; }
+  .shown figure::before { content: ""; position: absolute; top: -8%; left: 50%; width: min(130%, 250px); aspect-ratio: 1; translate: -50% 0; border-radius: 50%; background: radial-gradient(closest-side, rgba(239, 230, 210, .1), transparent); pointer-events: none; }
+  .shown img { position: relative; width: min(100%, 190px); height: auto; }
+  .shown figcaption { display: grid; gap: 2px; font-size: 14.5px; }
+  .shown figcaption b { font-weight: 500; }
+  .shown figcaption i { font-style: italic; color: var(--fg-quiet); }
+
+  .how .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 26px; }
+  .how .acts .word { font-size: 16px; }
+
+  @media (max-width: 1000px) {
+    .door { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "say" "stage" "more"; min-height: 0; gap: 6px; padding-top: 14px; }
+    .say, .more { gap: 14px; }
+    .more { margin-top: 18px; }
+    .stage { width: min(100%, 560px); margin-top: 16px; }
+    .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .shown { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 700px) {
+    .door { padding-inline: 16px; }
+    .say, .more { padding-inline: 10px; gap: 12px; }
+    .say .title { font-size: 32px; }
+    .proof { font-size: 14px; }
+    .stage { width: min(100%, 420px); }
+    .focus { top: 41%; width: 34%; }
+    .readout { position: static; translate: none; width: auto; margin-top: 16px; justify-items: start; text-align: left; } /* keeps its 96 px: filled in after the first paint, it moves nothing under it */
+    .readout b { font-size: 19px; }
+    .label { font-size: 11.5px; }
+    .label.year { font-size: 10.5px; letter-spacing: .16em; }
+    .how { padding-top: 56px; gap: 24px; }
+    .steps { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+    .shown { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+    .shown figure:last-child { grid-column: 1 / -1; }
+    .shown img { width: min(100%, 150px); }
+    .foot { margin-top: 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .p img, .focus img, .focus iframe { transition: none; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute"><filter id="pc-ink" x="-4%" y="-15%" width="108%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="4" result="fibre"/><feDisplacementMap in="SourceGraphic" in2="fibre" scale="1.2" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
+
+<nav class="top" aria-label="Planet Creator">
+  <a class="brand" href="./" aria-current="page">Planet Creator</a>
+  <ul class="trail">
+    <li><a class="word" href="galaxy/">Galaxy</a></li>
+    <li><a class="word" href="shelf/?ryan">Ryan's shelf</a></li>
+    <li><a class="word" href="make/">Make yours</a></li>
+    <li><a class="word" href="how/">How it works</a></li>
+  </ul>
+</nav>
+
+<main id="main">
+  <section class="door" aria-labelledby="title">
+    <header class="say">
+      <h1 class="title" id="title">A planet for every week you train.</h1>
+      <p class="lede">Planet Creator reads your Garmin files in the browser and paints each week of training as a world you can land on and run around. Nothing gets uploaded.</p>
+      <div class="acts">
+        <a class="btn" href="make/">Make yours</a>
+        <a class="btn quiet" href="galaxy/">Ryan's weeks</a>
+        <a class="word" href="demo/">Watch the film</a>
+      </div>
+    </header>
+    <div class="more">
+      <p class="proof aside"><b id="totals">Every week of training, painted as a world.</b></p>
+      <p class="aside others"><span>No files handy? Try a sample week:</span><span id="others"></span></p>
+      <p class="legend">Every week of Ryan's since March 2025 is on these laps, one planet each, sized by the hours in it: two years, two laps of the sun. The weeks circled in red had a race in them. <b id="hint">Point at a planet to read its week.</b> <a href="shelf/?ryan">See them all on his shelf</a>, or <a href="galaxy/">as a galaxy</a>.</p>
+    </div>
+
+    <figure class="stage" id="stage">
+      <div class="lap" id="lap">
+        <svg viewBox="-1 -1 2 2" aria-hidden="true" id="sky"></svg>
+        <div id="labels" aria-hidden="true"></div>
+        <button class="focus race" id="focus" type="button" aria-label="Show the marathon week turning">
+          <img id="face" class="still on" alt="A painted planet: blue seas, ochre land and a red race line along its rim" width="400" height="400" decoding="async" fetchpriority="high">
+          <img id="ghost" class="still" alt="" width="192" height="192" decoding="async">
+        </button>
+        <div id="field" role="group" aria-label="Ryan's weeks, one planet each. The left and right arrows walk the weeks."></div>
+        <svg viewBox="-1 -1 2 2" aria-hidden="true"><line class="spoke" id="spoke"/></svg>
+      </div>
+      <p class="readout" id="readout" aria-live="polite"></p>
+    </figure>
+  </section>
+
+  <section class="how" id="how" aria-labelledby="how-title">
+    <header class="how-head">
+      <h2 class="h2" id="how-title">How a week turns into a planet</h2>
+      <p class="lede">Every session leaves something behind on the planet, and the week as a whole sets its sea and its colours.</p>
+    </header>
+
+    <ol class="steps">
+      <li>
+        <p class="num">1</p>
+        <h3>It happens in your browser</h3>
+        <p>Your .fit files, or the whole export Garmin emails you, are read on your own machine. No account, nothing uploaded, and the weeks you keep stay on your shelf in this browser.</p>
+      </li>
+      <li>
+        <p class="num">2</p>
+        <h3>Every session raises its own thing</h3>
+        <p>A run raises a ridge, and a longer run draws a longer one. A ride carves a valley, a swim digs a lagoon, lifting stands up rock, and yoga plants a grove.</p>
+        <div class="marks" id="marks"></div>
+      </li>
+      <li>
+        <p class="num">3</p>
+        <h3>The week sets the sea and the colours</h3>
+        <p>The week's sweat fills the sea, the temperature your watch saw picks the colours, and hard work pushes them toward red rock. A race leaves a monument at the finish, and its course is painted red.</p>
+      </li>
+      <li>
+        <p class="num">4</p>
+        <h3>Then you land on it</h3>
+        <p>Walk the planet, and <a href="shelf/">keep it on your shelf</a>: one planet for each week, laid out around the sun, a year to a lap. Print a week as a poster, or copy a link that leaves the names behind.</p>
+      </li>
+    </ol>
+
+    <div class="shown" id="shown" aria-label="Three of Ryan's weeks, each painted by the app"></div>
+
+    <div class="acts">
+      <a class="btn" href="make/">Make yours</a>
+      <a class="word" href="how/">See it built, session by session</a>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>Made by <a href="https://fleming.run/">Ryan Fleming</a>. The first planet was his marathon week.</span>
+  <span class="links"><a href="shelf/">Your shelf</a><a href="privacy/">Privacy</a><a href="terms/">Terms</a><a href="https://github.com/rlfleming93/planetCreator">Source on GitHub</a></span>
+</footer>
+
+<script type="module">
+import { showWorld } from './lib/world.js';
+import { codeOf } from './lib/store.js';
+import { when, numbers, nameOf, count, monthYear } from './lib/poster.js';
+import { SAMPLES } from './lib/samples.js';
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+const DAY = 864e5, TAU = Math.PI * 2;
+const OPEN = '2025-04-28'; // the first planet: his marathon week, in the middle of the lap it began
+
+const weeks = await (await fetch('shelf/ryan.json')).json();
+const minutes = (w) => w.stats?.min || 0;
+const raced = (w) => !!w.stats?.race;
+const one = (k) => [...weeks].sort((a, b) => (b.stats?.[k] || 0) - (a.stats?.[k] || 0))[0];
+const still96 = (w) => `shelf/ryan/thumbs/96/${w.week}.webp?v=${w.rev}`;   // the image hash busts an in-progress week's old painting
+const still192 = (w) => `shelf/ryan/thumbs/192/${w.week}.webp?v=${w.rev}`; // beads, re-encoded small by the build
+const still400 = (w) => `shelf/ryan/${w.week}.webp?v=${w.rev}`;            // the app's own painting, full size
+$('face').src = still400(weeks.find((w) => w.week === OPEN)); // the initial planet uses the same revisioned URL as every other still
+
+// ------------------------------------------------------------ the numbers under the words, and the other sports
+{
+  const sum = (k) => weeks.reduce((n, w) => n + (w.stats?.[k] || 0), 0);
+  $('totals').textContent = `${count(weeks.length, 'week')} of training so far · ${Math.round(sum('mi')).toLocaleString('en-US')} miles · ${count(Math.round(sum('min') / 60), 'hour')}`;
+  $('others').replaceChildren(...SAMPLES.map((s) => Object.assign(document.createElement('a'), {
+    href: `make/?sample=${s.key}`,
+    textContent: s.name.replace(/^An? /, '').replace(/'s week$|week$/, '').trim(),
+  })));
+  if (matchMedia('(pointer: coarse)').matches) $('hint').textContent = 'Tap a planet to read its week; press the one in the middle to let it turn.';
+}
+
+// ------------------------------------------------------------ below the fold: what a session leaves, in the app's words
+{
+  const MARKS = [
+    ['a ridge', 'M1 12 L6 5 L9 9 L13 3 L18 8 L23 6'],       // a run
+    ['a valley', 'M1 3 C5 4 8 12 12 12 C16 12 19 4 23 3'],  // a ride
+    ['a lagoon', 'M2 6 C5 3 8 9 12 6 C16 3 19 9 22 6 M2 11 C5 8 8 14 12 11 C16 8 19 14 22 11'], // a swim
+    ['a grove', 'M4 12 C4 8 8 8 8 12 M6 12 V13.6 M10 12 C10 7 15 7 15 12 M12.5 12 V13.6 M17 12 C17 9 21 9 21 12 M19 12 V13.6'], // yoga
+    ['a stand of spires', 'M5 12 L7 3 L9 12 M12 12 L13 2 L14 12 M17 12 L18.5 5 L20 12'],        // lifting
+    ['a monument', 'M6 13 H18 M12 13 V6 M10 6 H14 M12 6 V3.5'],                                 // a race
+  ];
+  $('marks').replaceChildren(...MARKS.map(([noun, d]) => {
+    const span = document.createElement('span');
+    span.innerHTML = `<svg viewBox="0 0 24 15" aria-hidden="true"><path d="${d}"/></svg>${esc(noun)}`;
+    return span;
+  }));
+
+  // three of his weeks, painted by the app, to show how little a week looks like the next
+  const SHOW = [["Ryan's biggest week", one('min')], ['A week of riding', one('ride')], ['A week on the mat', one('yoga')]];
+  $('shown').replaceChildren(...SHOW.map(([label, w]) => {
+    const fig = document.createElement('figure');
+    fig.innerHTML = `<img class="still" loading="lazy" decoding="async" width="192" height="192" alt="" `
+      + `srcset="${still96(w)} 96w, ${still192(w)} 192w" sizes="190px" src="${still192(w)}">`
+      + `<figcaption><b>${esc(label)}</b><i>${esc(monthYear(w.week))} · ${esc(numbers(w.stats)).replace(/(\d) (miles|km|hours|hour|sessions|session)\b/g, '$1\u00a0$2')}</i></figcaption>`;
+    const img = fig.querySelector('img');
+    img.addEventListener('error', () => { img.src = still400(w); }, { once: true });
+    return fig;
+  }));
+}
+
+// ------------------------------------------------------------ the lap: a year to a ring, January at the top
+const lap = $('lap'), field = $('field'), sky = $('sky');
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const turn = (week) => { const y = +week.slice(0, 4); return (Date.parse(`${week}T12:00:00Z`) - Date.UTC(y, 0, 1)) / (Date.UTC(y + 1, 0, 1) - Date.UTC(y, 0, 1)); };
+const at = (r, t) => [r * Math.sin(t * TAU), -r * Math.cos(t * TAU)];
+const f = (v) => +v.toFixed(4);
+const place = ([x, y]) => `left:${f(50 + x * 50)}%;top:${f(50 + y * 50)}%`;
+
+// a ring drawn by hand: never quite round, and an arc between two points on it
+function ringPath(r, seed) {
+  let d = '';
+  for (let i = 0; i <= 140; i++) {
+    const t = i / 140, k = r * (1 + 0.004 * Math.sin(3 * t * TAU + seed) + 0.002 * Math.sin(7 * t * TAU + seed * 1.7));
+    const [x, y] = at(k, t);
+    d += `${i ? 'L' : 'M'}${f(x)} ${f(y)}`;
+  }
+  return `${d}Z`;
+}
+const arcPath = (r, t0, t1) => {
+  const [x0, y0] = at(r, t0), [x1, y1] = at(r, t1);
+  return `M${f(x0)} ${f(y0)}A${r} ${r} 0 ${t1 - t0 > 0.5 ? 1 : 0} 1 ${f(x1)} ${f(y1)}`;
+};
+
+const years = [...new Set(weeks.map((w) => +w.week.slice(0, 4)))];
+const IN = 0.66, OUT = 0.92;
+const ringOf = (y) => (years.length === 1 ? 0.76 : IN + ((OUT - IN) * years.indexOf(y)) / (years.length - 1));
+
+{
+  let marks = '', labels = '';
+  const outer = ringOf(years.at(-1));
+  for (let m = 0; m < 12; m++) {
+    const t = (Date.UTC(2025, m, 1) - Date.UTC(2025, 0, 1)) / (365 * DAY), mid = t + 15 / 365;
+    const [x1, y1] = at(outer + 0.026, t), [x2, y2] = at(outer + 0.046, t);
+    marks += `<line class="tick" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}"/>`;
+    const [sx, sy] = at(1, mid);
+    labels += `<span class="label" style="${place(at(outer + 0.076, mid))};translate:${f(-50 + 50 * sx)}% ${f(-50 + 50 * sy)}%">${MONTHS[m].slice(0, 3)}</span>`;
+  }
+  years.forEach((y, i) => {
+    const r = ringOf(y);
+    marks += `<path class="ring" d="${ringPath(r, i * 2.1)}"/><path class="ring twin" d="${ringPath(r * 1.006, i * 2.1 + 4)}"/>`;
+    // the lap so far, inked from the year's first kept week to its last
+    const mine = weeks.filter((w) => +w.week.slice(0, 4) === y);
+    if (mine.length > 1) {
+      const arc = arcPath(r, turn(mine[0].week), turn(mine.at(-1).week));
+      marks += `<path class="wash" d="${arc}"/><path class="lap-arc" d="${arc}"/>`;
+    }
+    // the year is written on its own ring, in the months that year has no weeks in, with paper knocked out behind it
+    const ts = mine.map((w) => turn(w.week)).sort((a, b) => a - b);
+    let gap = { at: 0.5, span: 0 };
+    for (let k = 0; k < ts.length; k++) {
+      const from = ts[k], to = (ts[k + 1] ?? ts[0] + 1);
+      if (to - from > gap.span) gap = { at: (from + to) / 2, span: to - from };
+    }
+    labels += `<span class="label year" style="${place(at(r, gap.at % 1))};color:var(--year-${(years.length - 1 - i) % 3})">${y}</span>`; // written on its own ring, in its year's ink
+  });
+  sky.innerHTML = marks;
+  $('labels').innerHTML = labels;
+}
+
+// a week as a button. tabindex roves: the week in the middle is the one the keyboard holds.
+const planets = weeks.map((w) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = `p${raced(w) ? ' race' : ''}`;
+  b.week = w;
+  b.setAttribute('aria-label', `${nameOf(w)}, ${when(w.week)}. ${numbers(w.stats)}${raced(w) ? `. ${w.stats.race}` : ''}`);
+  b.setAttribute('aria-pressed', 'false');
+  b.tabIndex = -1;
+  const img = Object.assign(document.createElement('img'), { // at rest a bead is at most 20 px on a phone and 38 on a wide screen: the 96 px one
+    className: 'still', alt: '', width: 192, height: 192, decoding: 'async',
+    srcset: `${still96(w)} 96w, ${still192(w)} 192w`,
+    sizes: '(max-width: 1000px) 28px, 40px',
+    src: still96(w),
+  });
+  img.addEventListener('error', () => { // a week the build hasn't drawn a bead for yet: the full still, then pencil
+    if (!img.dataset.full) { img.dataset.full = '1'; img.src = still400(w); } else b.classList.add('blank');
+  });
+  b.append(img);
+  b.addEventListener('focus', () => heat(b));
+  b.addEventListener('blur', () => heat(null));
+  return b;
+});
+
+{ // sized by the hours in the week, on one scale for both rings: as big as the tighter ring's weeks allow, so a
+  // week of eleven hours looks the same whichever lap it sits on
+  const most = Math.max(1, ...weeks.map(minutes));
+  const room = Math.min(...years.map((y) => (TAU * ringOf(y)) / weeks.filter((w) => +w.week.slice(0, 4) === y).length));
+  field.replaceChildren(...planets.map((b) => {
+    const w = b.week, r = ringOf(+w.week.slice(0, 4)), t = turn(w.week);
+    const size = room * (0.5 + 0.5 * Math.sqrt(minutes(w) / most));
+    const [x, y] = at(r, t);
+    b.at = { x, y, r, t, size };
+    b.style.cssText = `${place([x, y])};width:${f(size * 50)}%;margin:${f(-size * 25)}% 0 0 ${f(-size * 25)}%`;
+    return b;
+  }));
+}
+
+// every planet sets out from January and runs round to its week, in the order he trained them
+function arrive() {
+  if (reduced.matches || !lap.clientWidth) return;
+  const half = lap.clientWidth / 2;
+  planets.forEach((b, i) => {
+    const { x, y, t, size } = b.at, w = size * half;
+    b.style.transformOrigin = `${w / 2 - x * half}px ${w / 2 - y * half}px`;
+    b.animate([{ transform: `rotate(${-t * 360}deg)`, opacity: 0 }, { opacity: 1, offset: 0.15 }, { transform: 'rotate(0deg)', opacity: 1 }],
+      { duration: 1400, delay: 90 + i * 17, easing: 'cubic-bezier(.3, .6, .12, 1)', fill: 'backwards' });
+  });
+}
+
+// ------------------------------------------------------------ the planet in the middle
+const focus = $('focus'), face = $('face'), ghost = $('ghost');
+let front = face, back = ghost, open = weeks.find((w) => w.week === OPEN), world = null, liveTimer;
+
+function paint(w, crisp) { // the middle never blinks: the new planet fades in over the old one
+  back.onload = () => { back.classList.add('on'); front.classList.remove('on'); [front, back] = [back, front]; };
+  back.onerror = () => back.classList.remove('on');
+  back.src = crisp ? still400(w) : still192(w);
+}
+function wordOf(w) {
+  $('readout').innerHTML = `<b>${esc(nameOf(w))}</b><span class="when">${when(w.week)}</span>`
+    + `<span class="nums">${esc(numbers(w.stats))}</span>`
+    + (raced(w) ? `<span class="race">${esc(w.stats.race)}</span>` : '')
+    + (world ? `<a class="word" href="planet/ink.html#p=${codeOf(w.link)}">Land on it</a>` : '');
+}
+function hold(w) { // the week is open: it is the one in the middle, and the one the keyboard holds
+  open = w;
+  focus.classList.toggle('race', raced(w));
+  focus.setAttribute('aria-label', `Show ${nameOf(w)} turning`);
+  wordOf(w);
+  for (const b of planets) {
+    const mine = b.week === w;
+    b.setAttribute('aria-pressed', String(mine));
+    b.tabIndex = mine ? 0 : -1;
+  }
+}
+function settle() { // the pointer has gone: the middle shows the open week again
+  hold(open);
+  if (!world) paint(open, true);
+}
+const worlder = () => world ??= focus.appendChild(Object.assign(document.createElement('iframe'), { title: 'The week, turning', tabIndex: -1 }));
+function letItTurn(w) { // the real app, in the middle of the lap, once it has been asked for
+  showWorld(worlder(), codeOf(w.link), { quiet: true })
+    .then(() => { if (open === w) { focus.classList.add('live'); wordOf(open); } })
+    .catch(() => {});
+}
+function backToStill() { // back to the still
+  clearTimeout(liveTimer);
+  focus.classList.remove('live');
+  world?.remove();
+  world = null;
+  paint(open, true);
+  wordOf(open);
+}
+focus.addEventListener('click', () => { if (world) backToStill(); else letItTurn(open); });
+
+// ------------------------------------------------------------ the pointer: the nearest week within reach answers
+let hot = null;
+function nearest(e) {
+  const box = lap.getBoundingClientRect(), half = box.width / 2;
+  const x = (e.clientX - box.left) / half - 1, y = (e.clientY - box.top) / half - 1;
+  let best = null, gap = Infinity;
+  for (const b of planets) {
+    const d = Math.hypot(b.at.x - x, b.at.y - y) - b.at.size / 2;
+    if (d < gap) { gap = d; best = b; }
+  }
+  const touch = e.pointerType ? e.pointerType === 'touch' : matchMedia('(pointer: coarse)').matches;
+  return gap * half <= (touch ? 24 : 13) ? best : null;
+}
+function heat(b) {
+  if (b === hot) return;
+  hot?.classList.remove('hot');
+  hot = b;
+  lap.classList.toggle('pointing', !!b);
+  b?.classList.add('hot');
+  if (b) {
+    b.style.setProperty('--grow', Math.max(1.3, 62 / b.offsetWidth).toFixed(2));
+    b.firstChild.sizes = '64px'; // grown, it wants the 192 px bead (the one the middle is showing it from)
+    wordOf(b.week); // the words name whatever the pointer is on
+    if (!world) paint(b.week, false); // and the middle shows it, softly, until he stops on one
+  } else settle();
+  const spoke = $('spoke');
+  let from = 0, reach = 0;
+  if (b) {
+    from = clear(b.at.t);
+    reach = b.at.r - (b.at.size / 2) * 1.35 - 0.012;
+    const [x1, y1] = at(from, b.at.t), [x2, y2] = at(reach, b.at.t);
+    Object.entries({ x1, y1, x2, y2 }).forEach(([k, v]) => spoke.setAttribute(k, f(v)));
+  }
+  spoke.classList.toggle('on', !!b && reach - from > 0.04);
+}
+// where a spoke from the middle may start: past the planet in the middle, and past the words under it
+function clear(t) {
+  const box = lap.getBoundingClientRect(), half = box.width / 2;
+  const words = $('readout').getBoundingClientRect();
+  const d = at(1, t), lo = [(words.left - box.left) / half - 1, (words.top - box.top) / half - 1], hi = [(words.right - box.left) / half - 1, (words.bottom - box.top) / half - 1];
+  let near = 0.2, far = Infinity;
+  for (const k of [0, 1]) {
+    if (Math.abs(d[k]) < 1e-9) { if (lo[k] > 0 || hi[k] < 0) return near; continue; }
+    const a = lo[k] / d[k], b = hi[k] / d[k];
+    near = Math.max(near, Math.min(a, b));
+    far = Math.min(far, Math.max(a, b));
+  }
+  return near <= far && near < 1 ? far + 0.03 : near;
+}
+
+function pick(b) { // walk to a week: the middle paints it, then the app takes over there
+  if (liveTimer) clearTimeout(liveTimer);
+  if (world) backToStill();
+  hold(b.week);
+  paint(b.week, true);
+  b.focus({ preventScroll: true });
+  liveTimer = setTimeout(() => { if (open === b.week && document.visibilityState !== 'hidden') letItTurn(b.week); }, 700);
+}
+lap.addEventListener('pointermove', (e) => { if (e.pointerType !== 'touch') heat(nearest(e)); });
+lap.addEventListener('pointerleave', () => heat(null));
+lap.addEventListener('click', (e) => {
+  const b = e.target.closest('.p') || nearest(e); // a planet itself only gets a click from a key or a screen reader
+  if (b) pick(b);
+});
+
+// keyboard: the arrows walk the weeks, the middle holds the one you stopped on
+lap.addEventListener('keydown', (e) => {
+  const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -1, ArrowDown: 1 }[e.key];
+  if (!step) return;
+  const here = planets.findIndex((p) => p.week === open);
+  e.preventDefault();
+  pick(planets[(here + step + planets.length) % planets.length]);
+});
+
+// once the visitor has asked for it, or once the page has loaded, the lap has settled and the browser is idle with
+// nobody touching it: let it turn (a phone asks with a tap)
+let idle = true;
+lap.addEventListener('pointerenter', () => { idle = false; }, { once: true });
+const loaded = new Promise((resolve) => (document.readyState === 'complete' ? resolve() : addEventListener('load', resolve, { once: true })));
+Promise.all([loaded, new Promise((resolve) => setTimeout(resolve, 2600))])
+  .then(() => new Promise((resolve) => (window.requestIdleCallback ? requestIdleCallback(resolve, { timeout: 3000 }) : setTimeout(resolve, 200))))
+  .then(() => {
+    if (idle && !world && !reduced.matches && !matchMedia('(max-width: 1000px)').matches && !navigator.connection?.saveData && document.visibilityState !== 'hidden') letItTurn(open);
+  });
+
+arrive();
+settle();
+</script>
+</body>
+</html>

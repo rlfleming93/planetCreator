@@ -1,0 +1,1168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ryan's weeks, as a galaxy · Planet Creator</title>
+<meta name="description" content="Every week of Ryan's training since March 2025 as a star in one galaxy. The big blocks grew the black hole at its heart.">
+<meta property="og:image" content="https://planet.fleming.run/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="628">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a0d20">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23efe6d2' stroke='%231b2540' stroke-width='1.5'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="/kit/icon-192.png">
+<link rel="canonical" href="https://planet.fleming.run/galaxy/">
+<!-- the weeks, asked for with the page rather than after three.js and every module have loaded and run (your own
+     galaxy, ?mine, is this browser's shelf instead) -->
+<script>if (!new URLSearchParams(location.search).has('mine')) document.head.append(Object.assign(document.createElement('link'), { rel: 'preload', href: '../shelf/ryan.json', as: 'fetch', crossOrigin: 'anonymous' }));</script>
+<link rel="stylesheet" href="../lib/space.css">
+<link rel="stylesheet" href="../lib/ink.css">
+<style>
+  /* the page is the galaxy: the site's night (lib/space.css) to every edge, the words on it in the paper's cream,
+     what you pick up (a week, the key) on slips of that paper laid over the dark, and along the foot every week in
+     a strip. The page never scrolls or zooms as a page: every touch on it is the galaxy's (or the strip's, the
+     key's or the card's, which scroll) */
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; touch-action: none; }
+  /* once the eye leaves home a close-up's bright arms can run behind the page's words: a soft dark under them then,
+     over the galaxy and under the plate's words (--head is the bottom of the page's words, set by the page) */
+  body::before { content: ""; position: fixed; left: 0; right: 0; top: 0; z-index: 1; height: calc(var(--head, 0px) + 60px); pointer-events: none; opacity: 0; transition: opacity .9s ease;
+    background: rgba(10, 13, 32, .74); -webkit-mask: linear-gradient(#000 calc(100% - 90px), transparent); mask: linear-gradient(#000 calc(100% - 90px), transparent); }
+  body.moved::before { opacity: 1; }
+  .sky { position: fixed; inset: 0; z-index: 0; touch-action: none; }
+  .galaxy-canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  .galaxy-canvas:active { cursor: grabbing; }
+  .sky.pointing .galaxy-canvas { cursor: pointer; }
+  .galaxy-canvas:focus-visible { outline: 2px dashed var(--cream-rule); outline-offset: -10px; }
+  .top, .say, .hint, .key-open, .play { position: relative; z-index: 5; }
+  .top { pointer-events: none; }
+  .top a { pointer-events: auto; }
+  .say { width: min(30rem, calc(100vw - 2 * var(--edge))); margin: 18px var(--edge) 0; pointer-events: none; text-shadow: 0 1px 12px var(--night); transition: opacity .5s ease, visibility .5s; }
+  .say h1 { font-weight: 400; font-size: clamp(27px, 3.2vw, 44px); line-height: 1.04; letter-spacing: -.02em; filter: url(#pc-ink); }
+  .say p { margin-top: 10px; font-size: clamp(15px, 1.15vw, 17px); line-height: 1.5; color: var(--cream-soft); text-wrap: pretty; }
+  .status { position: fixed; inset: 0; z-index: 1; display: grid; place-items: center; color: var(--cream-quiet); pointer-events: none; }
+  .hint { position: fixed; right: var(--edge); bottom: calc(var(--dock-h, 150px) + 14px); max-width: 24rem; text-align: right; font-size: 14px; line-height: 1.45; color: var(--cream-soft); pointer-events: none; text-shadow: 0 0 3px var(--night), 0 0 10px var(--night), 0 0 18px var(--night); transition: opacity .5s ease; }
+  body.picked .hint { opacity: 0; }
+  /* the zoom down to a picked week's ground, said by its world until a zoom has once landed on one (any screen) */
+  .zoom-tip { position: fixed; left: 0; top: 0; z-index: 5; font-size: 14px; font-style: italic; color: var(--cream-soft); white-space: nowrap; pointer-events: none; text-shadow: 0 0 3px var(--night), 0 0 10px var(--night), 0 0 18px var(--night); opacity: 0; transition: opacity .5s ease; }
+  .zoom-tip.on { opacity: 1; }
+  /* the opening, played only when asked (Play the opening): close on the hole, the page's words held back (and
+     inert) until the galaxy is revealed; any key or tap, or the Skip control, brings them at once; with reduced
+     motion there is no opening (and no word to play it) */
+  .top, .say, .hint, .key, .key-open, .labels, .chips, .dock { transition: opacity .9s ease; }
+  body.opening :is(.top, .say, .hint, .key, .key-open, .labels, .chips, .dock) { opacity: 0; transition: none; }
+  .skip { display: none; position: fixed; right: var(--edge); bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 9; font-size: 14px; }
+  body.opening .skip { display: inline-block; }
+  .play { pointer-events: auto; min-height: 40px; margin-top: 4px; padding: 9px 2px 11px; font-size: 14px; }
+
+  /* Every week along the foot of the page: a strip of their paintings to swipe through or step along, the one in
+     the middle the week the galaxy shows (ringed, its date under it), under each other one the sign of its main
+     sport in that sport's star colour, a race, a record or the comeback marked with the key's own sign, and the
+     months over them as headings (the year at each January); under it the steps either way and the way back. */
+  .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; padding-bottom: env(safe-area-inset-bottom); background: var(--night-veil); }
+  .dock::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 26px; background: linear-gradient(rgba(10, 13, 32, 0), var(--night-veil)); pointer-events: none; }
+  .strip { --pitch: 76px; --thumb: 62px; display: flex; overflow: auto hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; touch-action: pan-x; padding: 26px calc(50% - var(--pitch) / 2) 19px; }
+  .strip::-webkit-scrollbar { display: none; }
+  .wk { position: relative; flex: none; width: var(--pitch); height: calc(var(--thumb) + 12px); display: grid; place-items: center; scroll-snap-align: center; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
+  .wk img { width: var(--thumb); height: var(--thumb); border-radius: 50%; background: var(--night-lift); -webkit-mask: radial-gradient(closest-side, #000 90%, transparent 100%); mask: radial-gradient(closest-side, #000 90%, transparent 100%); transition: transform .25s var(--ease-out); }
+  .wk::after { content: ""; position: absolute; left: 50%; top: 50%; width: calc(var(--thumb) + 10px); height: calc(var(--thumb) + 10px); margin: calc(var(--thumb) / -2 - 5px) 0 0 calc(var(--thumb) / -2 - 5px); border: 1.6px solid var(--cream); border-radius: 50%; opacity: 0; transform: scale(.92); transition: opacity .2s ease, transform .25s ease; pointer-events: none; }
+  .wk[aria-selected="true"]::after { opacity: 1; transform: none; }
+  .wk[aria-selected="true"] img, .wk:hover img { transform: scale(1.07); }
+  .wk:focus-visible::after { opacity: 1; transform: none; border-style: dashed; border-color: var(--ember); }
+  .wk .mo { position: absolute; left: 7px; top: -23px; font-size: 13px; line-height: 1; letter-spacing: .02em; color: var(--cream-soft); white-space: nowrap; pointer-events: none; }
+  .wk .mo b { font-weight: 600; letter-spacing: .03em; }
+  .wk.mo-at::before { content: ""; position: absolute; left: 0; top: -25px; height: 18px; width: 1px; background: var(--cream-rule); }
+  .wk.yr::before { height: auto; bottom: 8px; background: var(--cream-soft); }
+  /* under each painting the sign of the week's main sport; under the picked one its date instead */
+  .wk .sport, .wk .day { position: absolute; left: 0; right: 0; top: 100%; display: flex; justify-content: center; height: 15px; pointer-events: none; transition: opacity .2s ease; }
+  .wk .sport svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; }
+  .wk .day { font-size: 12.5px; line-height: 15px; letter-spacing: .02em; color: var(--cream); white-space: nowrap; font-variant-numeric: lining-nums; opacity: 0; }
+  .wk[aria-selected="true"] .day { opacity: 1; }
+  .wk[aria-selected="true"] .sport { opacity: 0; }
+  .wk .marks { position: absolute; right: 0; top: -1px; display: grid; gap: 2px; pointer-events: none; }
+  .wk .marks svg { display: block; width: 19px; height: 19px; border-radius: 50%; background: #0d1126; outline: 1.5px solid var(--night); }
+  .steps { display: flex; justify-content: center; align-items: center; gap: 0 clamp(14px, 4.4vw, 44px); padding: 0 var(--edge) 4px; }
+  .steps .word { min-height: 44px; padding: 12px 2px 14px; font-size: 14.5px; white-space: nowrap; }
+  .steps .choose:focus-within { color: var(--hot); }
+  /* the way to any week by its date: a native picker of every week, by month, laid unseen over its word */
+  .choose select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+
+  /* the plate's own words: the years by the tip of each arm, each only while it can be read and never over another
+     (the months are the strip's); and from the whole-galaxy view the few things worth flying to, each on a tab of
+     paper with a hairline out to it, saying what it is and, under that, why it is worth a look */
+  .labels { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+  /* clipped to the screen: close in, the arms' traces (hidden then) are laid millions of px off it, and unclipped the
+     compositor can take seconds over a frame of that, and the galaxy stops drawing */
+  .labels svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+  .labels line, .labels circle { stroke: var(--cream); stroke-width: .9; fill: none; }
+  .labels path.trace { fill: none; stroke-width: 1.2; stroke-linecap: round; stroke-dasharray: 3 6; }
+  .label { position: absolute; left: 0; top: 0; color: var(--cream); white-space: nowrap; text-shadow: 0 0 3px var(--night), 0 0 8px var(--night), 0 0 16px var(--night); will-change: transform; }
+  .label.year { font-size: 17px; font-weight: 600; letter-spacing: .06em; }
+  .chips { position: fixed; inset: 0; z-index: 4; pointer-events: none; }
+  .chip { position: absolute; left: 0; top: 0; display: grid; grid-template-columns: 22px auto; align-items: center; gap: 0 8px; padding: 6px 15px 7px 8px; border: 0; background: var(--slip-whole) center / 100% 100% no-repeat; color: var(--ink); font: 13px/1.2 var(--font); text-align: left; white-space: nowrap; cursor: pointer; pointer-events: auto; will-change: transform; -webkit-tap-highlight-color: transparent; }
+  .chip::before { content: ""; position: absolute; inset: -7px -3px; } /* a fingertip's reach */
+  .chip svg { width: 22px; height: 22px; border-radius: 50%; background: #0d1126; }
+  .chip b { display: block; font-size: 15px; font-weight: 600; letter-spacing: .01em; }
+  .chip small { display: block; margin-top: 1px; font-size: 13px; color: var(--ink-soft); font-variant-numeric: lining-nums; }
+  .chip:hover b, .chip:focus-visible b { color: var(--accent); }
+
+  .peek { position: fixed; left: 0; top: 0; z-index: 6; padding: 6px 12px 7px; color: var(--ink); background: var(--slip-whole) center / 100% 100% no-repeat; font-size: 13.5px; line-height: 1.25; white-space: nowrap; pointer-events: none; }
+  .peek b { font-weight: 600; }
+
+  /* a slip of the paper (ink.css), laid a touch askew: in the left-hand column of a wide screen, the key from the
+     whole-galaxy view, a picked week's card in its place */
+  .key, .card { position: fixed; left: var(--edge); top: var(--col-top, 200px); width: min(27rem, calc(100vw - 2 * var(--edge))); max-height: calc(100svh - var(--col-top, 200px) - var(--dock-h, 150px) - 20px); overflow: auto; scrollbar-width: thin; scrollbar-color: var(--rule) transparent; touch-action: pan-y; }
+  .key { z-index: 6; padding: 14px 22px 19px 20px; transform: rotate(-.3deg); font-size: 13.5px; line-height: 1.33; }
+  .key h2 { font-size: 16px; font-weight: 600; letter-spacing: .02em; margin-bottom: 8px; filter: url(#pc-ink); }
+  .key h2::after { content: ""; display: block; height: 6px; margin: 4px 45% 0 -2px; background: var(--accent); -webkit-mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; transform: rotate(-.35deg); }
+  .key h3 { margin: 9px 0 6px; padding-top: 8px; border-top: 1px solid var(--faint); font-size: 14px; font-weight: 600; }
+  .key ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+  .key li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 11px; align-items: center; }
+  .key li svg { width: 34px; height: 26px; border-radius: 3px; background: #0d1126; }
+  .key b { font-weight: 600; }
+  .grew { display: block; margin-top: 4px; width: 100%; height: 26px; }
+  .grew path.mass { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  .grew path.under { fill: rgba(176, 64, 42, .12); }
+  .grew line { stroke: var(--rule); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .grew-ends { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-soft); }
+  .key-close { position: absolute; z-index: 1; right: 14px; top: 10px; border: 0; background: none; padding: 4px 6px; font: 20px/1 var(--font); color: var(--ink); opacity: .55; cursor: pointer; display: none; } /* over the filtered heading */
+  .key-close:hover { color: var(--accent); opacity: 1; }
+  .key-open { display: none; }
+  body.picked .key:not(.open) { display: none; }
+  body.picked .key { z-index: 9; }
+  body.picked .key-close { display: block; }
+
+  /* story first: the week's name, what it is (its world, its system) and what made it special; then its numbers,
+     then its dates, small */
+  .card { z-index: 7; padding: 18px 24px 16px 22px; transform: rotate(.25deg); font-size: 14px; line-height: 1.4; }
+  .card h2 { margin: 0 0 3px; font-size: 22px; font-weight: 500; line-height: 1.15; letter-spacing: -.005em; text-wrap: balance; filter: url(#pc-ink); }
+  .card .what { font-size: 15px; line-height: 1.35; text-wrap: pretty; }
+  .card .sys { margin-top: 2px; color: var(--ink-soft); font-size: 13.5px; line-height: 1.35; text-wrap: pretty; }
+  .card ul { margin: 9px 0 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+  .card li { display: grid; grid-template-columns: 21px minmax(0, 1fr); gap: 9px; align-items: center; font-size: 14px; line-height: 1.3; }
+  .card li svg { width: 21px; height: 21px; border-radius: 50%; background: #0d1126; }
+  .card .nums { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--faint); color: var(--ink-soft); font-size: 14px; font-variant-numeric: lining-nums tabular-nums; }
+  .card .when { margin-top: 1px; color: var(--ink-soft); font-size: 12.5px; letter-spacing: .01em; }
+  .card :is(.what, .sys, ul, .nums, .when):empty { display: none; }
+  .card .grew-box { margin-top: 10px; }
+  .card .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; margin-top: 12px; }
+  .card .btn { min-height: 44px; padding: 10px 22px 11px; font-size: 15px; }
+  .card .acts .word { min-height: 44px; padding: 12px 2px 14px; font-size: 14px; }
+  /* your own galaxy's weeks keep where they came from: a Garmin line under the name, Strava's mark */
+  .card .garmin { margin: 0 0 4px; color: var(--ink-soft); font-size: 13.5px; letter-spacing: .02em; }
+  .card .strava-mark { margin-top: 10px; line-height: 0; }
+  .card .strava-mark svg { display: block; width: min(100%, 200px); height: auto; }
+
+  @media (min-width: 761px) and (min-height: 561px) { /* the words sit on the left: the dark under them, and a band under the links */
+    body::before { background: linear-gradient(rgba(10, 13, 32, .7), rgba(10, 13, 32, 0) 100px), linear-gradient(to right, rgba(10, 13, 32, .76) min(36rem, 45vw), rgba(10, 13, 32, 0) min(50rem, 64vw)); }
+    /* the word to play the opening at the end of the lede, so the key keeps its room */
+    .say h1 { margin-bottom: 10px; }
+    .say p { display: inline; }
+    .play { min-height: 0; margin: 0 0 0 .55em; padding: 2px 0 7px; font-size: 14px; }
+  }
+  .choose .short { display: none; }
+  @media (max-width: 340px) { /* the narrowest phones: the chooser's word short, so the steps keep one row */
+    .choose .long { display: none; }
+    .choose .short { display: inline; }
+  }
+  @media (max-width: 760px), (max-height: 560px) { /* a phone either way up: a smaller strip, the key behind a word */
+    .say { margin-top: 10px; }
+    .say p { font-size: 14.5px; }
+    .hint { display: none; }
+    .strip { --pitch: 62px; --thumb: 52px; }
+    .steps { justify-content: space-evenly; gap: 0 8px; padding: 0 8px 4px; }
+    .steps .word { font-size: 13.5px; letter-spacing: .02em; }
+    /* a picked week: the title and lede give their room to the week */
+    body.picked .say { opacity: 0; visibility: hidden; }
+    .key-open { display: inline-block; pointer-events: auto; min-height: 40px; margin-top: 2px; padding: 9px 2px 11px; font-size: 14px; }
+    .play { margin: 2px 0 0 18px; }
+    .key { left: 10px; right: 10px; top: auto; bottom: calc(var(--dock-h, 150px) + 8px); width: auto; max-height: calc(100svh - var(--dock-h, 150px) - 70px); transform: none; }
+    .key:not(.open) { display: none; }
+    .key-close { display: block; }
+    .card { padding: 15px 18px 12px; }
+    .card h2 { font-size: 20px; }
+    .card .what { font-size: 14.5px; }
+    .card .sys { font-size: 13px; }
+    .card li, .card .nums { font-size: 13.5px; }
+    .card .acts { margin-top: 10px; }
+    .label.year { font-size: 15px; }
+    .chip b { font-size: 13.5px; }
+    .chip small { font-size: 12px; }
+  }
+  @media (max-width: 760px) and (min-height: 561px) { /* upright: a week's card sits on the strip, its way to land always in view */
+    .card { left: 10px; right: 10px; top: auto; bottom: calc(var(--dock-h, 150px) + 8px); width: auto; max-height: var(--card-room, 260px); transform: none; }
+    .card .acts { position: sticky; bottom: -12px; margin: 10px -6px -12px; padding: 8px 6px 10px; background: linear-gradient(rgba(243, 236, 220, 0), var(--slip-paper) 10px); }
+  }
+  @media (max-height: 560px) { /* on its side: the card in a narrower column, the week beside it, its way to land always in view */
+    .card { width: var(--col-w, 22rem); max-height: calc(100svh - var(--col-top, 60px) - var(--dock-h, 150px) - 12px); padding: 12px 16px 10px; }
+    .card h2 { font-size: 18px; }
+    .card .acts { position: sticky; bottom: -10px; margin: 8px -6px -10px; padding: 10px 6px 8px; background: linear-gradient(rgba(243, 236, 220, 0), var(--slip-paper) 10px); }
+    .strip { --pitch: 56px; --thumb: 46px; padding-top: 24px; }
+  }
+  @media (max-height: 560px) and (min-width: 561px) {
+    .say p { display: none; } /* a phone on its side: the title alone, so the galaxy has the height */
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .label, .chip { will-change: auto; }
+    .strip { scroll-behavior: auto; }
+  }
+  /* the dive (galaxy-dive.js): the week's own planet in a frame over the galaxy, crossed into as the zoom reaches it.
+     As the picked week's planet grows toward that the page's words step back (--near, 0 to 1), while the planet has
+     the screen they are away (and inert), and a word at the top left goes back up */
+  body.nearing :is(.top, .say, .hint, .zoom-tip, .card, .dock, .chips, .labels, .key, .peek) { filter: opacity(calc(1 - var(--near, 0))); }
+  body.neared :is(.top, .say, .card, .dock, .chips, .key) { pointer-events: none; }
+  .dive { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
+  .dive iframe { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border: 0; opacity: 0; transform-origin: 0 0; transition: opacity .45s ease; }
+  body:is([data-dive="entering"], [data-dive="planet"]) .dive iframe { opacity: 1; pointer-events: auto; }
+  .sky { transform-origin: 0 0; }
+  body:is([data-dive="entering"], [data-dive="planet"]) :is(.top, .say, .hint, .zoom-tip, .card, .dock, .chips, .labels, .key, .peek, .planets) { opacity: 0; pointer-events: none; transition: opacity .45s ease; }
+  body[data-dive="planet"] :is(.sky, .top, .say, .card, .dock, .chips, .labels, .key, .planets) { visibility: hidden; }
+  .dive-back { display: none; position: absolute; left: var(--edge); top: calc(8px + env(safe-area-inset-top)); min-height: 44px; padding: 12px 2px 14px; color: var(--paper); font-size: 15px; pointer-events: auto; text-shadow: 0 1px 10px #0a0d20; }
+  body:is([data-dive="entering"], [data-dive="planet"]) .dive-back { display: inline-block; }
+  .dive-back:hover, .dive-back:focus-visible { color: #f0b39f; }
+  .dive-status { position: absolute; left: var(--edge); right: var(--edge); bottom: calc(var(--dock-h, 150px) + 16px); text-align: center; font-style: italic; color: #d9d1bd; text-shadow: 0 0 10px #0a0d20, 0 0 3px #0a0d20; }
+  @media (prefers-reduced-motion: reduce) {
+    .dive iframe, body[data-dive] :is(.top, .say, .hint, .zoom-tip, .card, .dock, .chips, .labels, .key, .peek, .planets) { transition: none; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <filter id="pc-ink" x="-4%" y="-15%" width="108%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="4" result="fibre"/><feDisplacementMap in="SourceGraphic" in2="fibre" scale="1.2" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <!-- the key's signs, small, for the strip, the tabs and a week's card (each laid on a dark round) -->
+  <symbol id="g-remnant" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6" fill="none" stroke="#c4596a" stroke-width="1.6"/><path d="M5.3 7.4 A6 6 0 0 1 14.6 6.6" fill="none" stroke="#f0a8a2" stroke-width="2.2" stroke-linecap="round"/><circle cx="10" cy="10" r="2.6" fill="#9cc0f0" opacity=".45"/><circle cx="10" cy="10" r="1.3" fill="#fff8ec"/></symbol>
+  <symbol id="g-pulsar" viewBox="0 0 20 20"><path d="M10 10 L 3.5 4.5 M10 10 L 16.5 15.5" stroke="#b9cdf0" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="2.1" fill="#fff"/></symbol>
+  <symbol id="g-cluster" viewBox="0 0 20 20"><g fill="#f7dfa6"><circle cx="10" cy="10" r="2.3"/><circle cx="6.8" cy="8.3" r="1"/><circle cx="13.2" cy="11.8" r="1"/><circle cx="11.8" cy="6.6" r=".9"/><circle cx="7.6" cy="13.4" r=".9"/><circle cx="14.4" cy="8.2" r=".7"/><circle cx="5.6" cy="11.4" r=".7"/><circle cx="10.6" cy="14.8" r=".6"/></g></symbol>
+  <symbol id="g-dwarf" viewBox="0 0 20 20"><path d="M3 16 C 6 8, 12 5, 17 8" fill="none" stroke="#efe4cc" stroke-width=".9" stroke-linecap="round" stroke-dasharray="1 2" opacity=".85"/><ellipse cx="9" cy="8.4" rx="4.2" ry="2.5" transform="rotate(-28 9 8.4)" fill="#f2e6cc" opacity=".85"/><circle cx="9" cy="8.4" r="1.2" fill="#fff6e4"/></symbol>
+  <symbol id="g-lane" viewBox="0 0 20 20"><path d="M2.5 13.5 C 7 10, 12 8, 17.5 7.5" fill="none" stroke="#c8d0e2" stroke-width="5" stroke-linecap="round" opacity=".5"/><path d="M3 12.6 C 7.5 9.4, 12 7.6, 17.5 6.8" fill="none" stroke="#08070c" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="4 1.4 2.4 1"/></symbol>
+  <symbol id="g-nebula" viewBox="0 0 20 20"><path d="M2.5 14 C 7 10.5, 12 8.5, 17.5 8" fill="none" stroke="#c8d0e2" stroke-width="4" stroke-linecap="round" opacity=".4"/><circle cx="7" cy="10.5" r="2.8" fill="#d9607a" opacity=".75"/><circle cx="12.6" cy="8" r="2.2" fill="#e88a9c" opacity=".75"/><circle cx="7" cy="10.5" r="1.1" fill="#f8d4da"/></symbol>
+  <symbol id="g-latest" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.2" fill="none" stroke="#efe6d2" stroke-width="1.3"/><circle cx="10" cy="10" r="2.4" fill="#f5c25c"/></symbol>
+  <symbol id="g-hole" viewBox="0 0 20 20"><ellipse cx="10" cy="10.6" rx="8.4" ry="2.4" fill="none" stroke="#e9b44e" stroke-width="1.7"/><path d="M5.2 9.6 A 4.8 4 0 0 1 14.8 9.6" fill="none" stroke="#f6e2a0" stroke-width="1.4"/><circle cx="10" cy="10" r="3.4" fill="#050608"/><circle cx="10" cy="10" r="3.7" fill="none" stroke="#fff6e2" stroke-width=".5"/></symbol>
+  <symbol id="g-jets" viewBox="0 0 20 20"><path d="M6 17 L 14 3" stroke="#b9c8f0" stroke-width="1.2" stroke-linecap="round"/><circle cx="10" cy="10" r="2.6" fill="#050608"/><circle cx="10" cy="10" r="2.9" fill="none" stroke="#f0b35a" stroke-width=".9"/></symbol>
+  <!-- each sport's sign, drawn in its star's colour (the stroke and fill come from where it is used) -->
+  <symbol id="s-runs" viewBox="0 0 16 16"><circle cx="10.4" cy="2.6" r="1.6" fill="currentColor" stroke="none"/><path d="M9.6 5 L7.8 9.2 L10.6 10.8 L10 14.6 M7.8 9.2 L5.8 12.2 L2.8 12.6 M9.6 5 L6.8 6.2 L5.4 8.4 M9.6 5 L11.4 7.4 L13.8 7"/></symbol>
+  <symbol id="s-ride" viewBox="0 0 16 16"><circle cx="3.6" cy="11" r="2.8"/><circle cx="12.4" cy="11" r="2.8"/><path d="M3.6 11 L6.4 6.4 L11 6.4 L12.4 11 M6.4 6.4 L8.2 11 L11 6.4 M5.2 4.8 H7.4 M11 6.4 L10.4 4.4 H12"/></symbol>
+  <symbol id="s-swim" viewBox="0 0 16 16"><circle cx="11.6" cy="4.6" r="1.6" fill="currentColor" stroke="none"/><path d="M3.4 7.6 C 5.4 5.4, 8.2 5, 9.8 6.4 M1.4 10.6 C 2.8 9.4, 4.2 9.4, 5.6 10.6 S 8.4 11.8, 9.8 10.6 S 12.6 9.4, 14.6 10.6 M1.4 13.6 C 2.8 12.4, 4.2 12.4, 5.6 13.6 S 8.4 14.8, 9.8 13.6 S 12.6 12.4, 14.6 13.6"/></symbol>
+  <symbol id="s-football" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M8 5.4 L10.5 7.2 L9.5 10.1 L6.5 10.1 L5.5 7.2 Z" fill="currentColor"/><path d="M8 5.4 V1.8 M10.5 7.2 L14 6.2 M9.5 10.1 L11.6 13 M6.5 10.1 L4.4 13 M5.5 7.2 L2 6.2"/></symbol>
+  <symbol id="s-lift" viewBox="0 0 16 16"><path d="M1.2 8 H14.8"/><rect x="2.8" y="4.4" width="2.4" height="7.2" rx=".7" fill="currentColor"/><rect x="10.8" y="4.4" width="2.4" height="7.2" rx=".7" fill="currentColor"/></symbol>
+  <symbol id="s-yoga" viewBox="0 0 16 16"><circle cx="8" cy="2.8" r="1.6" fill="currentColor" stroke="none"/><path d="M8 5 V9.4 M8 6.2 C 6.6 7.4, 5.2 8.6, 4 10 M8 6.2 C 9.4 7.4, 10.8 8.6, 12 10 M2.2 12.2 C 5 10.2, 11 10.2, 13.8 12.2 C 11 14, 5 14, 2.2 12.2 Z"/></symbol>
+  <symbol id="s-walk" viewBox="0 0 16 16"><g fill="currentColor" stroke="none"><ellipse cx="5" cy="9" rx="1.9" ry="3" transform="rotate(-10 5 9)"/><circle cx="5.6" cy="13.6" r="1.3"/><ellipse cx="11" cy="4.6" rx="1.9" ry="3" transform="rotate(10 11 4.6)"/><circle cx="10.6" cy="9.2" r="1.3"/></g></symbol>
+  <symbol id="s-other" viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.6"/><circle cx="8" cy="8" r="1.6" fill="currentColor" stroke="none"/></symbol>
+</svg>
+
+<p class="status" id="status">Painting the galaxy…</p>
+<div class="labels" id="labels" aria-hidden="true"></div>
+
+<nav class="top" aria-label="Planet Creator">
+  <a class="brand" href="../">Planet Creator</a>
+  <ul class="trail">
+    <li><a class="word" href="../galaxy/" aria-current="page">Galaxy</a></li>
+    <li><a class="word" href="../shelf/?ryan">Ryan's shelf</a></li>
+    <li><a class="word" href="../make/">Make yours</a></li>
+    <li><a class="word" href="../how/">How it works</a></li>
+  </ul>
+</nav>
+
+<header class="say">
+  <h1>Ryan's weeks, as a galaxy</h1>
+  <p id="lede">Every week of training is a star. The big blocks fed the black hole at the middle.</p>
+  <button class="word key-open" type="button" id="key-open" aria-controls="key" aria-expanded="false">How to read it</button>
+  <button class="word play" type="button" id="play">Play the opening</button>
+</header>
+<script>
+  // your own galaxy (?mine, the weeks on this browser's shelf) is settled before the page is first drawn
+  if (new URLSearchParams(location.search).has('mine')) {
+    document.title = 'Your weeks, as a galaxy · Planet Creator';
+    document.querySelector('.say h1').textContent = 'Your weeks, as a galaxy';
+    document.querySelector('.trail [aria-current]').removeAttribute('aria-current'); // the trail's Galaxy is Ryan's
+  }
+</script>
+
+<div class="chips" id="chips" aria-label="Worth a look"></div>
+<div class="peek" id="peek" hidden></div>
+
+<div class="card slip" id="card" hidden aria-live="polite">
+  <h2 id="card-title"></h2>
+  <p class="garmin" id="card-garmin" hidden></p>
+  <p class="what" id="card-what"></p>
+  <p class="sys" id="card-sys"></p>
+  <ul id="card-notes"></ul>
+  <p class="nums" id="card-nums"></p>
+  <p class="when" id="card-when"></p>
+  <div class="strava-mark" id="card-strava" role="img" aria-label="Powered by Strava" hidden></div>
+  <div class="grew-box" id="card-grew" hidden><svg class="grew" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"></svg><span class="grew-ends"><span></span><span></span></span></div>
+  <div class="acts"><a class="btn" id="card-land" href="../planet/ink.html">Land on it</a><a class="word" id="card-share" href="../story/">Share this planet</a><button class="word" type="button" id="card-key" aria-controls="key" aria-expanded="false">How to read it</button></div>
+</div>
+
+<div class="sky" id="sky"></div>
+<div class="dive" id="dive"><button class="word dive-back" type="button" id="dive-back" aria-label="Back up to the galaxy"><span aria-hidden="true">‹ </span>Galaxy</button><p class="dive-status" id="dive-status" role="status"></p></div>
+
+<p class="hint" id="hint"></p>
+<p class="zoom-tip" id="zoom-tip" aria-hidden="true"></p>
+<button class="word skip" type="button" id="skip">Skip the opening</button>
+
+<aside class="key slip" id="key" aria-labelledby="key-title">
+  <button class="key-close" type="button" id="key-close" aria-label="Close the key">×</button>
+  <h2 id="key-title">How to read it</h2>
+  <ul>
+    <li>
+      <svg viewBox="0 0 34 26" aria-hidden="true"><defs><radialGradient id="ks"><stop offset="0" stop-color="#fffaf0"/><stop offset=".14" stop-color="#fff3e0" stop-opacity=".95"/><stop offset=".32" stop-color="currentColor" stop-opacity=".5"/><stop offset=".62" stop-color="currentColor" stop-opacity=".16"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient></defs><circle cx="10" cy="15" r="9" fill="url(#ks)" color="#f5c25c"/><circle cx="22" cy="8.5" r="6.5" fill="url(#ks)" color="#a8c6f0"/><circle cx="27.5" cy="19" r="5" fill="url(#ks)" color="#e8705a"/></svg>
+      <span><b>A star is a week</b>, bigger for more hours: gold for runs, blue rides, orange football, red lifting, white yoga.</span>
+    </li>
+    <li>
+      <svg viewBox="0 0 34 26" aria-hidden="true"><path d="M5 22 C 9 10, 20 4, 30 7" fill="none" stroke="#c8d0e2" stroke-width="3.2" stroke-linecap="round" opacity=".55"/><path d="M5 22 C 9 10, 20 4, 30 7" fill="none" stroke="#eef0f4" stroke-width="1" stroke-linecap="round"/><circle cx="30" cy="7" r="2.2" fill="#f5c25c"/></svg>
+      <span><b>An arm is a year</b>, from January at the core.</span>
+    </li>
+    <li>
+      <svg viewBox="0 0 34 26" aria-hidden="true"><defs><radialGradient id="ky"><stop offset="0" stop-color="#fff6e0"/><stop offset=".35" stop-color="#f5c25c" stop-opacity=".85"/><stop offset="1" stop-color="#f5c25c" stop-opacity="0"/></radialGradient></defs><ellipse cx="15" cy="13" rx="13" ry="5.6" fill="none" stroke="#c8d0e2" stroke-width=".7" opacity=".75" transform="rotate(-8 15 13)"/><circle cx="15" cy="13" r="5.4" fill="url(#ky)"/><circle cx="27.4" cy="10.6" r="3.1" fill="#9fc0c9"/><path d="M24.6 11.6 A 3.1 3.1 0 0 0 30.2 9.8" fill="none" stroke="#0d1126" stroke-width="1.4" opacity=".55"/><circle cx="31.6" cy="16.2" r="1" fill="#efe6d2"/><circle cx="4.8" cy="16.8" r=".8" fill="#e8705a"/></svg>
+      <span><b>Each week is a small solar system</b>: <span id="key-system"></span></span>
+    </li>
+    <li>
+      <svg viewBox="0 0 34 26" aria-hidden="true"><path d="M10 1.5 L 24 24.5" stroke="#b9c8f0" stroke-width=".9" stroke-linecap="round" opacity=".8"/><ellipse cx="17" cy="14" rx="14" ry="3.6" fill="none" stroke="#e9b44e" stroke-width="2.2"/><path d="M8.5 12.5 A 9 7.5 0 0 1 25.5 12.5" fill="none" stroke="#f6e2a0" stroke-width="2"/><circle cx="17" cy="13.4" r="5" fill="#050608"/><circle cx="17" cy="13.4" r="5.4" fill="none" stroke="#fff6e2" stroke-width=".6"/><path d="M3 14.6 Q 17 18.4 31 14.6" fill="none" stroke="#dc7a2c" stroke-width="2"/></svg>
+      <span><b>The black hole</b> grows in long blocks of high load: <span id="key-hole"></span></span>
+    </li>
+  </ul>
+  <h3>Marks on the weeks</h3>
+  <ul>
+    <li>
+      <svg viewBox="0 0 34 26" aria-hidden="true"><circle cx="17" cy="13" r="8" fill="none" stroke="#c4596a" stroke-width="1.6" opacity=".9"/><path d="M9.6 9.8 A 8 8 0 0 1 23.6 8.4" fill="none" stroke="#f0a8a2" stroke-width="2.6" stroke-linecap="round"/><circle cx="17" cy="13" r="4.6" fill="#4f9a9c" opacity=".25"/><circle cx="17" cy="13" r="3" fill="#9cc0f0" opacity=".45"/><circle cx="17" cy="13" r="1.5" fill="#fff8ec"/></svg>
+      <span><b>A race</b>: a rose shell of light.</span>
+    </li>
+    <li>
+      <svg viewBox="0 0 34 26" aria-hidden="true"><path d="M17 13 L 5 5 M17 13 L 29 21" stroke="#b9cdf0" stroke-width="1.2" stroke-linecap="round" opacity=".8"/><circle cx="17" cy="13" r="2.2" fill="#fff"/></svg>
+      <span><b>Most miles yet</b>: a star with two beams.</span>
+    </li>
+    <li>
+      <svg viewBox="0 0 34 26" aria-hidden="true"><g fill="#f7dfa6"><circle cx="17" cy="13" r="2.4"/><circle cx="13.5" cy="11" r="1"/><circle cx="20.5" cy="15" r="1"/><circle cx="19" cy="9.5" r=".9"/><circle cx="14" cy="16.5" r=".9"/><circle cx="22" cy="11.5" r=".7"/><circle cx="11.5" cy="14" r=".7"/><circle cx="17.5" cy="18" r=".6"/><circle cx="16" cy="7.8" r=".6"/></g></svg>
+      <span><b>Most hours yet</b>: a warm ball of old stars.</span>
+    </li>
+    <li id="key-dwarf-row">
+      <svg viewBox="0 0 34 26" aria-hidden="true"><defs><radialGradient id="kd"><stop offset="0" stop-color="#fff2d8"/><stop offset=".3" stop-color="#e8d8b8" stop-opacity=".7"/><stop offset="1" stop-color="#e8d8b8" stop-opacity="0"/></radialGradient></defs><path d="M3 22 C 8 9, 22 4, 31 12" fill="none" stroke="#d8ccb4" stroke-width="2.4" stroke-linecap="round" opacity=".3"/><path d="M3 22 C 8 9, 22 4, 31 12" fill="none" stroke="#efe4cc" stroke-width=".8" stroke-linecap="round" stroke-dasharray="1 2.2" opacity=".8"/><ellipse cx="13.5" cy="9.5" rx="5.5" ry="3.2" transform="rotate(-30 13.5 9.5)" fill="url(#kd)"/></svg>
+      <span><b>First heavy week after the longest gap</b>: a small galaxy torn into a stream. <span id="key-heavy"></span></span>
+    </li>
+    <li>
+      <svg viewBox="0 0 34 26" aria-hidden="true"><path d="M3 19 C 11 13, 21 9, 31 8" fill="none" stroke="#c8d0e2" stroke-width="6" stroke-linecap="round" opacity=".5"/><path d="M4 17 C 12 11.5, 21 8, 31 6.5" fill="none" stroke="#08070c" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="7 2 4 1.5"/></svg>
+      <span><b>Steady streak</b>: a dark dust lane, 6+ weeks of 5+ sessions and 5+ hours.</span>
+    </li>
+    <li>
+      <svg viewBox="0 0 34 26" aria-hidden="true"><defs><radialGradient id="kn"><stop offset="0" stop-color="#f8d4da"/><stop offset=".35" stop-color="#d9607a" stop-opacity=".8"/><stop offset="1" stop-color="#d9607a" stop-opacity="0"/></radialGradient></defs><path d="M3 20 C 11 14, 21 10, 31 9" fill="none" stroke="#c8d0e2" stroke-width="5" stroke-linecap="round" opacity=".45"/><circle cx="10.5" cy="12.5" r="4.2" fill="url(#kn)"/><circle cx="14.5" cy="10.5" r="2.3" fill="url(#kn)"/><circle cx="22" cy="7.5" r="3.4" fill="url(#kn)"/><circle cx="25.5" cy="8.8" r="1.9" fill="url(#kn)"/></svg>
+      <span><b>Busy streak</b>: pink nebulae, 4+ weeks of 5+ sessions.</span>
+    </li>
+  </ul>
+</aside>
+
+<nav class="dock" id="dock" aria-label="The weeks">
+  <div class="strip" id="strip" role="listbox" aria-label="Every week, oldest to newest" aria-orientation="horizontal"></div>
+  <div class="steps">
+    <button class="word" type="button" id="prev"><span aria-hidden="true">‹ </span>Earlier</button>
+    <label class="word choose"><span class="long">Choose week</span><span class="short">Week</span><span aria-hidden="true"> ▾</span><select id="choose" aria-label="Choose week"><option value="" hidden>Choose week</option></select></label>
+    <button class="word" type="button" id="whole">Whole galaxy</button>
+    <button class="word" type="button" id="next">Later<span aria-hidden="true"> ›</span></button>
+  </div>
+</nav>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "../planet/vendor/three/build/three.module.js"
+  }
+}
+</script>
+<script type="module">
+import { galaxyOf, onArm, armWidth, SPORTS } from './galaxy-data.js';
+import { systemOf, BELT_LIFTS, COMET_MILES } from './galaxy-system.js';
+import { createGalaxy } from './galaxy.js';
+import { createDive } from './galaxy-dive.js';
+import { codeOf, listPlanets, getThumb, putThumb, getGlobe, putGlobe } from '../lib/store.js';
+import { when, numbers, metric, MONTHS } from '../lib/poster.js';
+import { decodePlanet, encodePlanet } from '../planet/share.js';
+import { garminLines, poweredSvg } from '../planet/strava-mark.js';
+
+const $ = (id) => document.getElementById(id);
+const coarse = matchMedia('(pointer: coarse)').matches, still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const monthOf = (week) => `${MONTHS[+week.slice(5, 7) - 1]} ${week.slice(0, 4)}`;
+const dayOf = (week) => `${MONTHS[+week.slice(5, 7) - 1].slice(0, 3)} ${+week.slice(8)}`; // 'Apr 28'
+const thursday = (week) => new Date(Date.parse(`${week}T00:00:00Z`) + 3 * 864e5); // a week is its Thursday's month and year
+// your own galaxy (?mine): this browser's shelf, each week's still and globe painted here (lib/paint.js) and kept
+const mine = new URLSearchParams(location.search).has('mine'), pics = new Map(), rowOf = new Map();
+// a Strava or Garmin week of yours keeps where it came from on the planet's page: Strava's credit, its Garmin line
+const provenance = (w) => {
+  const p = rowOf.get(w.week);
+  if (p?.source !== 'strava' && p?.source !== 'garmin') return '';
+  const q = new URLSearchParams({ source: p.source });
+  if (p.detail === 'summary') q.set('detail', 'summary');
+  for (const line of garminLines(p.garmin)) q.append('garmin', line);
+  return `&${q}`;
+};
+const landOf = (w) => `../planet/ink.html${provenance(w).replace('&', '?')}#p=${codeOf(w.link)}`;
+const thumb = (w, px) => (mine ? pics.get(w.week).still : `../shelf/ryan/thumbs/${px}/${w.week}.webp?v=${w.rev}`);
+const painting = (w) => (mine ? pics.get(w.week).still : `../shelf/ryan/${w.week}.webp?v=${w.rev}`);
+const glyph = (kind) => `<svg viewBox="0 0 20 20" aria-hidden="true"><use href="#g-${kind}"/></svg>`;
+const distance = (mi) => (metric ? `${Math.round(mi * 1.609344)} km` : `${Math.round(mi)} miles`);
+const rgbOf = (c) => `rgb(${c.map((v) => Math.round(255 * Math.min(1, v))).join(' ')})`;
+// a week's main sport, by sessions (a tie goes to the one listed first here), drawn in its star's colour
+const MAIN = ['runs', 'ride', 'swim', 'football', 'walk', 'lift', 'yoga', 'other'], SPORT = Object.fromEntries(SPORTS.map((sp) => [sp.key, sp]));
+const mainSport = (s) => SPORT[MAIN.reduce((a, k) => ((s[k] || 0) > (s[a] || 0) ? k : a))];
+// what the week was painted as (shelf/ryan.json says which body), and why in its own numbers (ryan.json `why`, the
+// body's own reason)
+const WORLD = { rock: 'A rocky planet', marble: 'A marble', giant: 'A gas giant', ice: 'An ice giant', lava: 'A lava world', star: 'A crowned world' };
+const whatOf = (w) => (w.why ? `${WORLD[w.body]}, because ${w.why[0].toLowerCase()}${w.why.slice(1)}` : WORLD[w.body] || '');
+// the week's own small system, as galaxy-system.js draws it: a moon for each sport but lifting, a belt of stones for
+// the lifts, a comet for the miles, a ring for a race
+const plus = (mi) => (metric ? `${Math.round(mi * 1.609344)}+ km` : `${mi}+ miles`);
+const listed = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}` : xs[0]);
+function systemWords(w) {
+  const s = systemOf(w), parts = [];
+  if (s.moons.length) parts.push(`${s.moons.length > 1 ? 'moons' : 'a moon'} for ${listed(s.moons.map((m) => (m.key === 'other' ? 'other sessions' : m.label)))}`);
+  if (s.belt) parts.push(`a belt of stones for ${s.belt} lifts`);
+  if (s.comet) parts.push(`a comet for its ${distance(s.comet)}`);
+  if (s.ring) parts.push(`a ring for the ${s.ring.toLowerCase()}`);
+  return parts.length ? `In its system: ${parts.join('; ')}.` : '';
+}
+
+// your weeks, with a still and a globe each: what make/'s batch painted, and any missing painted now, one at a time
+async function myWeeks() {
+  const planets = await listPlanets();
+  const have = await Promise.all(planets.map(async (p) => [await getThumb(p.link).catch(() => null), await getGlobe(p.link).catch(() => null)]));
+  const missing = have.filter(([still, globe]) => !still || !globe).length;
+  const blobOf = (canvas) => new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.85));
+  let painter, done = 0;
+  for (const [i, p] of planets.entries()) {
+    let [still, globe] = have[i];
+    if (!still || !globe) {
+      $('status').textContent = `Painting your planets: ${++done} of ${missing}…`;
+      painter ??= await import('../lib/paint.js');
+      if (!still) await putThumb(p.link, (still = await blobOf(await painter.paint(p.link))));
+      if (!globe) {
+        const made = await painter.paintGlobe(p.link);
+        globe = { blob: await blobOf(made.canvas), r: made.still };
+        await putGlobe(p.link, globe.blob, globe.r);
+      }
+    }
+    pics.set(p.week, { still: URL.createObjectURL(still), globe: URL.createObjectURL(globe.blob) });
+    rowOf.set(p.week, p);
+    p.globe = Math.round(globe.r * 1e4) / 1e4;
+  }
+  return planets;
+}
+
+let g;
+try {
+  g = galaxyOf(mine ? await myWeeks() : await (await fetch('../shelf/ryan.json')).json());
+  if (!g) throw new Error(mine ? 'There are no weeks on your shelf yet. Make a planet and keep it, and it shows here.' : 'There are no weeks on the shelf yet.');
+} catch (error) {
+  $('status').textContent = `The galaxy didn't come out: ${error.message}`;
+  throw error;
+}
+$('card-strava').innerHTML = poweredSvg;
+const W = g.weeks, n = W.length, newest = W.at(-1);
+const farthest = g.pulsars.at(-1)?.at, longest = g.clusters.at(-1)?.at;
+const hours = (i) => `${(W[i].stats.min / 60).toFixed(1)} hours`;
+// the newest week as a visitor would say it: this week, last week, or the newest there is
+const ago = Math.floor((Date.now() - Date.parse(`${newest.week}T00:00:00Z`)) / (7 * 864e5));
+const nowWord = ago <= 0 ? 'This week' : ago === 1 ? 'Last week' : 'The newest week';
+// each year its own quiet colour, for its arm's trace and its name in the galaxy and over the strip: the newest
+// a warm paper, the one before a cool blue, older ones a dusk violet (lib/space.css's --year-0, -1, -2)
+const yearInk = (arm) => `var(--year-${(g.years.length - 1 - arm) % 3})`;
+
+// ---------------------------------------------------------------- the strip: every week, oldest to newest
+// Each its painting from the shelf, the sign of its main sport under it (its date there instead once picked) and
+// the key's sign on it for a race, a record or the comeback; over the first week of each month the month as a
+// heading (the year too at each January and at the start), a hairline at each.
+const strip = $('strip');
+const SIGNS = ['remnant', 'dwarf', 'pulsar', 'cluster']; // the marks a week wears in the strip, the strongest first
+// The same weeks in the chooser, by month, each by its day and its name.
+let lastMonth = '', group = null;
+const items = W.map((w) => {
+  const o = Object.assign(document.createElement('div'), { className: 'wk', id: `wk-${w.i}`, tabIndex: -1 });
+  o.dataset.i = w.i;
+  o.setAttribute('role', 'option');
+  o.setAttribute('aria-selected', 'false');
+  const th = thursday(w.week), month = th.getUTCMonth(), year = th.getUTCFullYear(), sport = mainSport(w.stats);
+  const marks = SIGNS.filter((kind) => w.notes.some(([k]) => k === kind));
+  o.setAttribute('aria-label', [w.title || 'A week', ...w.notes.map(([, text]) => text), `${w === newest ? `${nowWord}, ` : ''}${when(w.week)}`].join('. '));
+  const img = Object.assign(new Image(96, 96), { alt: '', loading: 'lazy', decoding: 'async', src: thumb(w, 96), srcset: `${thumb(w, 96)} 96w, ${thumb(w, 192)} 192w`, sizes: '(max-width: 760px) 52px, 62px' });
+  o.append(img);
+  if (w.stats.sessions) o.insertAdjacentHTML('beforeend', `<span class="sport" aria-hidden="true" style="color: ${rgbOf(sport.color)}"><svg viewBox="0 0 16 16"><use href="#s-${sport.key}"/></svg></span>`);
+  o.insertAdjacentHTML('beforeend', `<span class="day" aria-hidden="true">${dayOf(w.week)}</span>`);
+  if (`${year}-${month}` !== lastMonth) {
+    const first = !lastMonth || month === 0;
+    o.classList.add('mo-at');
+    if (first) o.classList.add('yr');
+    o.insertAdjacentHTML('beforeend', `<span class="mo" aria-hidden="true">${MONTHS[month]}${first ? ` <b style="color: ${yearInk(w.arm)}">${year}</b>` : ''}</span>`);
+    group = $('choose').appendChild(Object.assign(document.createElement('optgroup'), { label: `${MONTHS[month]} ${year}` }));
+    lastMonth = `${year}-${month}`;
+  }
+  group.append(new Option(`${dayOf(w.week)} · ${w.title || 'A week'}${w === newest ? ` · ${nowWord.toLowerCase()}` : ''}`, w.i));
+  if (marks.length) o.insertAdjacentHTML('beforeend', `<span class="marks" aria-hidden="true">${marks.slice(0, 2).map((kind) => glyph(kind)).join('')}</span>`);
+  return o;
+});
+strip.append(...items);
+
+// ---------------------------------------------------------------- the page's own layout
+// Three: a wide screen (the key, or a picked week's card in its place, in a left-hand column; the galaxy right of
+// it), a phone held upright (stacked: the words over the galaxy, a week's card on the strip), and a short screen on
+// its side (the column narrower, and only for a week's card: the key is behind a word). Measured when it changes,
+// never while drawing: where the strip begins, where the links, the words and the column end. The whole galaxy has
+// the room that leaves; a picked week stands at spot: on an upright phone under the links, over the room it keeps
+// for its card (as tall as the tallest card, so a week's planet never moves for its card, but never so tall that the
+// painting's own room between the links and the card falls under PAINT: past that the card scrolls in itself), else
+// in the middle of the space right of the column.
+const stackedQ = matchMedia('(max-width: 760px) and (min-height: 561px)'), stacked = () => stackedQ.matches;
+const shortQ = matchMedia('(max-height: 560px)'), short = () => shortQ.matches;
+const lay = { dock: 0, nav: 0, say: 0, col: 0, pitch: 76, room: 280, spot: { x: 0, y: 0 } }, PAINT = 150;
+let mode = 'whole'; // the whole galaxy, a week, or the hole (below)
+function measureLayout() {
+  const rect = (sel) => document.querySelector(sel).getBoundingClientRect(), edge = clamp(innerWidth * 0.042, 18, 64);
+  const colW = short() ? Math.min(352, 0.42 * innerWidth) : Math.min(432, innerWidth - 2 * edge);
+  lay.dock = rect('.dock').top;
+  lay.nav = rect('.top').bottom;
+  lay.say = rect('.say').bottom;
+  lay.col = stacked() ? 0 : edge + colW;
+  lay.pitch = items[0].offsetWidth || lay.pitch;
+  const room = lay.dock - 8 - lay.nav;
+  if (stacked()) lay.room = Math.min(lay.room, room - Math.max(PAINT, 0.45 * room));
+  lay.spot.x = stacked() ? innerWidth / 2 : (lay.col + innerWidth) / 2;
+  lay.spot.y = stacked() ? (lay.nav + lay.dock - 8 - lay.room) / 2 : (lay.nav + lay.dock) / 2;
+  const root = document.documentElement.style;
+  root.setProperty('--dock-h', `${Math.round(innerHeight - lay.dock)}px`);
+  root.setProperty('--col-w', `${Math.round(colW)}px`);
+  root.setProperty('--card-room', `${Math.round(lay.room)}px`);
+  heads();
+}
+// where the page's words end, for the dark under them and the column's top: a picked week's title and lede give
+// their room to it on a phone either way up
+function heads() {
+  const root = document.documentElement.style, gone = mode !== 'whole' && (stacked() || short());
+  root.setProperty('--head', `${Math.round(gone ? lay.nav : lay.say)}px`);
+  root.setProperty('--col-top', `${Math.round(gone ? lay.nav + 8 : lay.say + 16)}px`);
+}
+measureLayout();
+strip.scrollLeft = (n - 1) * lay.pitch; // the newest week in the middle, none picked yet
+
+// ---------------------------------------------------------------- the galaxy
+let sky, skipping = null, dive = null;
+const heldBack = document.querySelectorAll('.top, .say, .key, .dock, .chips');
+try {
+  // the whole galaxy in the room the words leave it: beside the key on a wide screen, under the title on a phone,
+  // over the strip either way
+  sky = createGalaxy($('sky'), g, {
+    onFrame: () => { place(); dive?.tick(); }, thumbOf: (w) => (mine ? pics.get(w.week).globe : `../shelf/ryan/globe/thumbs/96/${w.week}.webp?v=${w.rev}`), spot: () => lay.spot,
+    // the picked week's planet: as wide as its room allows (sizes), in its globe alone (the strip and card keep the stills)
+    planetPx: () => sizes()[0], paintingOf: (w) => (mine ? pics.get(w.week).globe : `../shelf/ryan/globe/${w.week}.webp?v=${w.rev}`),
+    // the whole galaxy's room: under the words on an upright phone, beside the column on a wide screen, under the
+    // links on a short one (its key behind a word); over the strip each way
+    inset: () => (stacked() ? { top: lay.say + 6, bottom: innerHeight - lay.dock + 6 } : short() ? { top: lay.nav, bottom: innerHeight - lay.dock + 6 } : { left: lay.col + 12, bottom: innerHeight - lay.dock + 6 }),
+    // the opening, when asked for: the words wait (inert) until it reveals the galaxy; the input that cut it short
+    // does nothing else
+    onReveal: (e) => { skipping = e || null; document.body.classList.remove('opening'); for (const el of heldBack) el.inert = false; },
+    // the dive: where the week's own planet takes over a zoom in on it, the zoom while it has the screen, a week a
+    // free zoom came close to, and a zoom out that came all the way back to the whole galaxy
+    dive: { box: () => dive.box(), enter: (i, rest) => dive.enter(i, rest), zoom: (f) => dive.zoom(f), pick: (i) => select(i, 'zoom'), home: () => { unpick(); setMode('whole'); } },
+  });
+  $('status').remove();
+} catch (error) {
+  $('status').textContent = /WebGL/i.test(String(error)) ? 'This browser cannot draw the galaxy (it needs WebGL 2).' : `The galaxy didn't come out: ${error.message}`;
+  throw error;
+}
+const canvas = sky.canvas;
+
+// ---------------------------------------------------------------- the words
+$('lede').textContent = `${n} weeks of training, each a star with its own world. Pick one below, or ${coarse ? 'tap' : 'click'} a star, to fly there.`;
+$('hint').textContent = 'Drag to turn the galaxy. Click a star or a week below to fly there; the arrow keys step week to week. Keep scrolling in on a week to land on it, and out to come back.';
+// the zoom down to a week's ground, said once by the picked week's world (under it, or over it where the card is)
+// until a zoom of the user's own (two fingers, or the wheel, off the strip) has landed on a planet (the dive, below)
+const tip = $('zoom-tip'), TIP = 'planet-creator:galaxy-zoomed', tipBox = { w: 0, h: 0 };
+let tipOn = true, zoomedAt = -1e9;
+try { tipOn = !localStorage.getItem(TIP); } catch {}
+tip.textContent = coarse ? 'Spread to land · pinch to return' : 'Scroll in to land · out to return';
+addEventListener('wheel', (e) => { if (sel >= 0 && !e.target.closest?.('.dock')) zoomedAt = performance.now(); }, { passive: true, capture: true });
+addEventListener('touchmove', (e) => { if (sel >= 0 && e.touches.length > 1) zoomedAt = performance.now(); }, { passive: true, capture: true });
+function placeTip() { // under the planet, else over it, else (no room between the links and the card) not said
+  let on = tipOn && mode === 'week' && document.body.dataset.dive === 'galaxy' && sky.planetOf(sel, pp).visible;
+  if (on) {
+    if (!tipBox.w) { tipBox.w = tip.offsetWidth; tipBox.h = tip.offsetHeight; }
+    const foot = stacked() ? lay.dock - 8 - lay.room : lay.dock - 8, below = pp.y + pp.r + 10;
+    const y = below + tipBox.h <= foot ? below : pp.y - pp.r - 10 - tipBox.h;
+    on = y >= lay.nav;
+    tip.style.transform = `translate(${(pp.x - tipBox.w / 2).toFixed(1)}px, ${y.toFixed(1)}px)`;
+  }
+  if (tip.classList.contains('on') !== on) tip.classList.toggle('on', on);
+}
+const big = g.hole.bigWeeks, jets = g.hole.activity > 0.25;
+$('key-hole').textContent = `${big} ${big === 1 ? 'week' : 'weeks'} so far${jets ? ', and its jets mean the last four weeks ran high' : ''}.`;
+{ // the hole's mass, week by week, on the hole's own card
+  const m = g.hole.growth, top = Math.max(1e-6, m.at(-1)), last = Math.max(1, m.length - 1);
+  const pts = m.map((v, i) => `${(100 * i) / last},${28 - (26 * v) / top}`);
+  $('card-grew').querySelector('svg').innerHTML = `<line x1="0" y1="28" x2="100" y2="28"/><path class="under" d="M0,28 L${pts.join(' L')} L100,28 Z"/><path class="mass" d="M${pts.join(' L')}"/>`;
+  $('card-grew').querySelector('.grew-ends span').textContent = monthOf(W[0].week);
+  $('card-grew').querySelector('.grew-ends span:last-child').textContent = monthOf(newest.week);
+}
+if (g.comeback) $('key-heavy').textContent = `A heavy week is 8 hours and ${distance(40)}, or as much load with more of one and less of the other; a race adds to it.`;
+else $('key-dwarf-row').remove();
+$('key-system').textContent = `its painting as a planet, a moon per sport (not lifting), a belt of stones for ${BELT_LIFTS}+ lifts, a comet for ${plus(COMET_MILES)}, a ring for a race.`;
+canvas.tabIndex = 0;
+canvas.setAttribute('role', 'application');
+canvas.setAttribute('aria-label', `${mine ? 'Your' : "Ryan's"} weeks of training painted as a spiral galaxy, one star a week, with a black hole at its middle. The arrow keys fly from week to week along the arms, Enter lands on the week's planet, Escape shows the whole galaxy. Plus and minus zoom in and out.`);
+
+// ---------------------------------------------------------------- the plate's words and tabs
+// Each label: where it is in the galaxy, its words, how strongly it shows from the whole-galaxy view (far) and close
+// in (near). Each tab: a thing worth flying to, on a tab of paper with a hairline out to it, its name in plain words
+// and under that why it is worth a look. Each frame the newest week's tab is laid first, then the labels (small, and
+// they say which arm is which year), then the other tabs; one that would cover one laid before it, or the page's own
+// words, is left out.
+const SVG = 'http://www.w3.org/2000/svg', ink = document.createElementNS(SVG, 'svg'), labels = [], tabs = [];
+$('labels').append(ink);
+function label(text, pos, kind, far, near) {
+  const el = Object.assign(document.createElement('span'), { className: `label ${kind}`, textContent: text });
+  $('labels').append(el);
+  labels.push({ el, pos, far, near, w: 0, h: 0 });
+}
+function tab(name, why, kind, pos, go) {
+  const el = Object.assign(document.createElement('button'), { type: 'button', className: 'chip', innerHTML: glyph(kind) });
+  const words = el.appendChild(document.createElement('span'));
+  words.append(Object.assign(document.createElement('b'), { textContent: name }));
+  if (why) words.append(Object.assign(document.createElement('small'), { textContent: why }));
+  el.setAttribute('aria-label', why ? `${name}: ${why}` : name);
+  el.addEventListener('click', go);
+  $('chips').append(el);
+  tabs.push({ el, pos, w: 0, h: 0, line: ink.appendChild(document.createElementNS(SVG, 'line')) });
+}
+// the newest week first (it has the first pick of places), then the hole, the comeback, the races and the records:
+// where a phone has no clear place for them all, the last are left out
+tab(nowWord, longest === newest.i ? `the most hours of any week: ${hours(newest.i)}` : '', 'latest', newest.pos, () => select(newest.i, 'tab'));
+tab('Black hole', 'fed by long training blocks', 'hole', [0, 0, 0], () => toHole());
+if (g.comeback) tab(`First heavy week in ${g.comeback.quiet + 1} weeks`, farthest === g.comeback.at ? `${distance(W[farthest].stats.mi)}, the most of any week` : monthOf(W[g.comeback.at].week), 'dwarf', sky.dwarfAt, () => select(g.comeback.at, 'tab'));
+for (const r of g.remnants) tab(r.race, monthOf(W[r.at].week), 'remnant', W[r.at].pos, () => select(r.at, 'tab'));
+if (longest != null && longest !== newest.i) tab('Most hours of any week', `${hours(longest)} · ${monthOf(W[longest].week)}`, 'cluster', W[longest].pos, () => select(longest, 'tab'));
+if (farthest != null && farthest !== g.comeback?.at) tab('Most miles of any week', `${distance(W[farthest].stats.mi)} · ${monthOf(W[farthest].week)}`, 'pulsar', W[farthest].pos, () => select(farthest, 'tab'));
+// the years, a little past the tip of each arm and outside it, from afar (close in, the card and the strip say when)
+for (const [arm, year] of g.years.entries()) {
+  const tip = W.filter((w) => w.arm === arm).at(-1), at = (t, across) => { const [x, z] = onArm(tip.t + t, arm, g.years.length, across); return [x, tip.pos[1], z]; };
+  label(String(year), at(0.1, 1.4), 'year', 0.9, 0);
+  labels.at(-1).el.style.color = yearInk(arm);
+  labels.at(-1).alts = [at(0.1, 1.4), at(0.1, -1.6), at(0.2, 0)];
+}
+const nowRing = ink.appendChild(document.createElementNS(SVG, 'circle'));
+// each year's arm traced a little outside it, dotted in its year's colour, from its first week to its tip where the
+// year is lettered in the same colour, so from afar the years read apart
+const traces = g.years.map((year, arm) => {
+  const own = W.filter((w) => w.arm === arm), t0 = own[0].t, t1 = own.at(-1).t, N = 40;
+  const path = ink.appendChild(document.createElementNS(SVG, 'path'));
+  path.setAttribute('class', 'trace');
+  path.style.stroke = yearInk(arm);
+  return { path, pts: Array.from({ length: N + 1 }, (_, k) => { const [x, z] = onArm(t0 + ((t1 - t0) * k) / N, arm, g.years.length, 2); return [x, 0, z]; }) };
+});
+
+// ---------------------------------------------------------------- picking a week
+// sel: the week the galaxy shows (-1: none); mode: the whole galaxy, a week, or the hole. The strip's middle and
+// sel go together both ways: the strip is scrolled to a week picked anywhere else (steer), and a week scrolled
+// to the middle by a finger, the wheel or the keys is picked as it passes (a scrub).
+let sel = -1, stop = n - 1, steer = -1, steerAt = 0, userAt = -1e9;
+const card = $('card');
+items[stop].tabIndex = 0;
+const centered = () => clamp(Math.round(strip.scrollLeft / lay.pitch), 0, n - 1);
+function stopAt(i) { items[stop].tabIndex = -1; stop = i; items[i].tabIndex = 0; } // the strip's one stop for Tab
+function steerTo(i) {
+  const left = i * lay.pitch;
+  if (Math.abs(strip.scrollLeft - left) < 1) return;
+  steer = i;
+  steerAt = performance.now();
+  strip.scrollTo({ left, behavior: still ? 'auto' : 'smooth' });
+}
+// the week the steps go from: the picked one, or with none the one in the middle of the strip (its stop)
+const from = () => (sel < 0 ? stop : sel);
+function setMode(m) {
+  mode = m;
+  document.body.classList.toggle('picked', m !== 'whole');
+  heads();
+  $('prev').disabled = from() === 0;
+  $('next').disabled = from() === n - 1;
+  $('choose').value = sel < 0 ? '' : String(sel);
+  if (m === 'whole') card.hidden = true;
+}
+function unpick() {
+  if (sel >= 0) items[sel].setAttribute('aria-selected', 'false');
+  sel = -1;
+  sky.select(-1);
+  dive?.watch(-1);
+}
+function select(i, how = 'tap') {
+  i = clamp(i, 0, n - 1);
+  if (i !== sel) {
+    if (sel >= 0) items[sel].setAttribute('aria-selected', 'false');
+    items[i].setAttribute('aria-selected', 'true');
+    stopAt(i);
+  }
+  sel = i;
+  if (how !== 'scrub') steerTo(i);
+  if (how === 'key') items[i].focus({ preventScroll: true });
+  sky.select(i, how !== 'zoom'); // a week a zoom came to is zoomed on from where the eye is, not flown to
+  dive?.watch(i);
+  fillWeek(i);
+  card.hidden = false;
+  setMode('week');
+}
+const step = (d) => select(from() + d, 'step');
+function whole() {
+  unpick();
+  sky.reset();
+  setMode('whole');
+}
+function toHole() {
+  unpick();
+  sky.toHole();
+  fillHole();
+  card.hidden = false;
+  setMode('hole');
+}
+// the card's words, story first: a week's name, what it was painted as and what made it special, then its numbers
+// and its dates; or the hole's
+const note = (kind, text) => { const li = document.createElement('li'); li.innerHTML = glyph(kind); li.append(text); return li; };
+function fillWeek(i) {
+  const w = W[i];
+  $('card-title').textContent = w.title || 'A week';
+  // a week of yours from Strava or Garmin: its Garmin line under its name, and Strava's mark on one of Strava's
+  const row = rowOf.get(w.week);
+  $('card-garmin').textContent = row?.source === 'strava' || row?.source === 'garmin' ? garminLines(row.garmin).join(' · ') : '';
+  $('card-garmin').hidden = !$('card-garmin').textContent;
+  $('card-strava').hidden = row?.source !== 'strava';
+  $('card-what').textContent = whatOf(w);
+  $('card-sys').textContent = systemWords(w);
+  $('card-notes').replaceChildren(...w.notes.map(([kind, text]) => note(kind, text)));
+  $('card-nums').textContent = numbers(w.stats);
+  $('card-when').textContent = `${i === n - 1 ? `${nowWord}: ` : ''}${when(w.week)}`;
+  $('card-grew').hidden = true;
+  $('card-land').hidden = false;
+  $('card-land').href = landOf(w);
+  $('card-share').hidden = false;
+  // a clip of it for a phone's share sheet (a week of yours without its names)
+  $('card-share').href = mine ? `../story/${provenance(w).replace('&', '?')}#p=${encodePlanet(decodePlanet(codeOf(w.link)))}` : `../story/#p=${codeOf(w.link)}`;
+}
+function fillHole() {
+  $('card-title').textContent = 'The black hole';
+  $('card-what').textContent = `It grows in long blocks of high load: ${big} ${big === 1 ? 'week has' : 'weeks have'} fed it so far.`;
+  $('card-sys').textContent = '';
+  $('card-notes').replaceChildren(note('hole', 'Its pull bends the light behind it'), ...(jets ? [note('jets', 'The last four weeks ran high, so it is throwing jets')] : []));
+  $('card-nums').textContent = '';
+  $('card-when').textContent = '';
+  $('card-grew').hidden = false;
+  $('card-land').hidden = $('card-share').hidden = $('card-garmin').hidden = $('card-strava').hidden = true;
+}
+// a phone keeps room over its strip for the tallest card there is, laid out unseen: the hole's and the few weeks with
+// the most words (a layout apiece, so not every week), once the page has painted and is idle, and kept for that width
+// (the fonts' arrival measures again)
+const rooms = new Map();
+let wordiest = null, roomAsked = false;
+const wordsOf = (w) => [w.title || '', whatOf(w), systemWords(w), numbers(w.stats)].join('').length + w.notes.reduce((s, [, text]) => s + 40 + text.length, 0);
+function cardRoom() {
+  wordiest ??= W.map((w) => [wordsOf(w), w.i]).sort((a, b) => b[0] - a[0]).slice(0, 8).map(([, i]) => i);
+  const shown = !card.hidden;
+  card.style.visibility = 'hidden';
+  card.hidden = false;
+  let most = 0;
+  for (const i of wordiest) { fillWeek(i); most = Math.max(most, card.scrollHeight); }
+  fillHole();
+  most = Math.max(most, card.scrollHeight);
+  if (mode === 'week') fillWeek(sel);
+  card.hidden = !shown;
+  card.style.visibility = '';
+  return most + 2;
+}
+// the card's room at this width: as kept, or (asked for, once the page is idle) the room it has meanwhile
+function roomNow() {
+  if (rooms.has(innerWidth)) return rooms.get(innerWidth);
+  if (!roomAsked) {
+    roomAsked = true;
+    const later = (fn) => ('requestIdleCallback' in window ? requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 300));
+    requestAnimationFrame(() => later(() => { roomAsked = false; rooms.set(innerWidth, cardRoom()); measure(); }));
+  }
+  return lay.room;
+}
+strip.addEventListener('click', (e) => { const o = e.target.closest('.wk'); if (o) select(+o.dataset.i, 'tap'); });
+strip.addEventListener('scroll', () => {
+  const now = performance.now(), c = centered();
+  if (steer >= 0) {
+    if ((c === steer && Math.abs(strip.scrollLeft - steer * lay.pitch) < 2) || now - steerAt > 1600) steer = -1;
+    return;
+  }
+  if (now - userAt > 1200) { if (sel < 0) stopAt(c); return; } // not the user's: the page laid out again
+  userAt = now; // a fling's glide goes on as the user's
+  if (c !== sel) select(c, 'scrub');
+}, { passive: true });
+// a finger's moves and lift count too: a stall (the dive's planet building on this thread) can hold the strip's
+// scroll events past 1.2 s after the touch began, and they are still the finger's
+for (const type of ['pointerdown', 'touchstart', 'touchmove', 'touchend', 'wheel']) strip.addEventListener(type, () => { userAt = performance.now(); steer = -1; }, { passive: true });
+// a mouse's wheel steps along the strip a week a notch (a trackpad's sideways swipe scrolls it as a finger does)
+let wheelSum = 0;
+strip.addEventListener('wheel', (e) => {
+  if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+  e.preventDefault();
+  wheelSum += e.deltaY * (e.deltaMode ? 40 : 1);
+  if (Math.abs(wheelSum) >= 50) { step(Math.sign(wheelSum)); wheelSum = 0; }
+}, { passive: false });
+strip.addEventListener('keydown', (e) => {
+  const here = from(), to = { ArrowLeft: here - 1, ArrowRight: here + 1, Home: 0, End: n - 1, PageUp: here - 4, PageDown: here + 4, Enter: here, ' ': here }[e.key];
+  if (to === undefined) return;
+  e.preventDefault();
+  e.stopPropagation();
+  select(to, 'key');
+});
+// a week pointed at in the strip is ringed in the galaxy too
+strip.addEventListener('pointerover', (e) => { const o = e.target.closest('.wk'); if (o && e.pointerType === 'mouse') sky.hover(+o.dataset.i); });
+strip.addEventListener('pointerleave', () => sky.hover(-1));
+$('prev').addEventListener('click', () => step(-1));
+$('next').addEventListener('click', () => step(1));
+$('whole').addEventListener('click', () => { canvas.focus({ preventScroll: true }); whole(); });
+$('choose').addEventListener('change', (e) => { if (e.target.value) select(+e.target.value, 'choose'); });
+setMode('whole'); // the steps' ends from the start
+
+// ---------------------------------------------------------------- each frame
+// the tabs and labels (never over the page's own words or the strip), the picked week's painting and its
+// neighbours' over their stars, the pointed-at week's name, and the dark under the header once the eye has left home
+const ORIGIN = [0, 0, 0], at = {}, hole = {}, ring = {}, pp = {}, placed = [], words = [];
+let away = false;
+const measure = () => {
+  if (stacked()) lay.room = roomNow();
+  measureLayout();
+  words.length = 0;
+  for (const el of document.querySelectorAll('.top a, .say h1, .say p, .key-open, .play, .hint')) {
+    const r = el.getBoundingClientRect();
+    if (r.width) words.push({ x: r.x - 16, y: r.y - 4, w: r.width + 32, h: r.height + 8 }); // a word's gap clear, so a year never reads on with them
+  }
+  for (const m of [...labels, ...tabs, tipBox]) m.w = 0; // measured again when next laid
+  strip.scrollLeft = (sel >= 0 ? sel : stop) * lay.pitch;
+  sky.layout();
+};
+measure();
+document.fonts.ready.then(() => { rooms.clear(); measure(); });
+addEventListener('resize', measure);
+const ease = (a, b, x) => { const s = clamp((x - a) / (b - a), 0, 1); return s * s * (3 - 2 * s); };
+const covers = (x, y, w, h) => placed.some((r) => x < r.x + r.w && x + w > r.x && y < r.y + r.h && y + h > r.y);
+// whether a hairline from the thing at `at` out to `end` would run through words already laid
+const crosses = () => placed.some((r) => {
+  for (let k = 2; k <= 10; k++) {
+    const x = at.x + ((end.x - at.x) * k) / 10, y = at.y + ((end.y - at.y) * k) / 10;
+    if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return true;
+  }
+  return false;
+});
+const out = [0, 0, 0], end = {}, slot = {}, rim = { top: 0, bottom: 0, left: 0, right: 0 }, box = { left: 0, right: 0, top: 0, bottom: 0 }, xs = [];
+// The galaxy's light, which the tabs keep off: its core, and each year's arm from the core out to its newest week as
+// a row of round patches as wide as its glow ([x, y, z, radius] in galaxy radii; laid on the screen each frame as
+// [x, y, radius] px in glowPx).
+const glow = [[0, 0, 0, 0.24]];
+for (const [arm] of g.years.entries()) {
+  const t1 = W.filter((w) => w.arm === arm).at(-1).t;
+  for (let k = 0; k < 32; k++) { const t = (t1 * k) / 31, [x, z] = onArm(t, arm, g.years.length); glow.push([x, 0, z, 2.2 * armWidth(t) + 0.03]); }
+}
+const glowPx = new Float64Array(3 * glow.length);
+function layGlow() { // and the box round all of it (rim), which the rows and columns of tabs stand outside
+  rim.top = rim.left = Infinity;
+  rim.bottom = rim.right = -Infinity;
+  for (let k = 0; k < glow.length; k++) {
+    const p = glow[k];
+    sky.screenOfPoint(p, end);
+    const x = end.x, y = end.y;
+    let r = 0;
+    for (let a = 0; a < 2; a++) { // its radius on the screen: the longer of its reach across and along the view
+      out[0] = p[0] + (a ? 0 : p[3]); out[1] = 0; out[2] = p[2] + (a ? p[3] : 0);
+      sky.screenOfPoint(out, end);
+      r = Math.max(r, Math.hypot(end.x - x, end.y - y));
+    }
+    glowPx[3 * k] = x; glowPx[3 * k + 1] = y; glowPx[3 * k + 2] = r;
+    rim.top = Math.min(rim.top, y - r);
+    rim.bottom = Math.max(rim.bottom, y + r);
+    rim.left = Math.min(rim.left, x - r);
+    rim.right = Math.max(rim.right, x + r);
+  }
+}
+// whether a box would cover the galaxy's light
+function onGlow(x, y, w, h) {
+  for (let k = 0; k < glowPx.length; k += 3) {
+    const dx = glowPx[k] - clamp(glowPx[k], x, x + w), dy = glowPx[k + 1] - clamp(glowPx[k + 1], y, y + h), r = glowPx[k + 2];
+    if (dx * dx + dy * dy < r * r) return true;
+  }
+  return false;
+}
+// Where a tab goes, by turns, never over the galaxy's light (a tab with no such place is left out): the hole's off
+// its lower side; the rest in the margin past the galaxy's rim, the way the thing lies from its middle (a step
+// further out if that is taken), as a plate is lettered; or beside the thing on its outer side; or, where neither
+// has room (a phone's width is all galaxy), in rows above or below the galaxy, under the thing or slid a little
+// along the row (never so far that its hairline runs off across the plate); or, where the galaxy is wider than its
+// room is tall (a phone on its side), in columns beside it; or just beside the thing toward the middle. Sets `end`
+// (the hairline's outer end) and `slot` (the tab's corner) and says whether that is free.
+const free = (m) => slot.x >= box.left && slot.x + m.w <= box.right && slot.y >= box.top && slot.y + m.h <= box.bottom && !covers(slot.x - 3, slot.y - 3, m.w + 6, m.h + 6) && !onGlow(slot.x - 4, slot.y - 4, m.w + 8, m.h + 8) && !crosses();
+function beside(m, side, d, dy) {
+  end.x = at.x + side * d;
+  end.y = at.y + dy;
+  slot.x = side > 0 ? end.x + 4 : end.x - m.w - 4;
+  slot.y = end.y - m.h / 2;
+  return free(m);
+}
+function tabAt(m, core) {
+  if (!m.pos[0] && !m.pos[2]) {
+    for (const [dx, dy] of [[0.6, 1], [-0.6, 1], [0.6, -1], [-0.6, -1]]) {
+      end.x = at.x + dx * 46;
+      end.y = at.y + dy * 46;
+      slot.x = dx > 0 ? end.x : end.x - m.w;
+      slot.y = dy > 0 ? end.y : end.y - m.h;
+      if (free(m)) return true;
+    }
+  }
+  for (let i = 0; i < 2; i++) {
+    const r0 = Math.hypot(m.pos[0], m.pos[2]) || 1, R = Math.max(r0 + 0.1, 1) + 0.16 * i;
+    out[0] = (m.pos[0] / r0) * R;
+    out[1] = m.pos[1];
+    out[2] = (m.pos[2] / r0) * R;
+    sky.screenOfPoint(out, end);
+    slot.x = end.x >= at.x ? end.x + 4 : end.x - m.w - 4;
+    slot.y = end.y - m.h / 2;
+    if (free(m)) return true;
+    slot.y = end.y < core.y ? end.y - m.h : end.y; // over the rim's top or under its foot, clear of it
+    if (free(m)) return true;
+  }
+  const outer = at.x >= core.x ? 1 : -1;
+  for (const d of [26, 60]) for (const dy of [0, -m.h - 6, m.h + 6]) if (beside(m, outer, d, dy)) return true;
+  const up0 = at.y < core.y;
+  for (let k = 0; k < 3; k++) {
+    for (const up of [up0, !up0]) {
+      const y = up ? rim.top - 12 - k * (m.h + 8) - m.h : rim.bottom + 12 + k * (m.h + 8);
+      xs.length = 0;
+      for (const s of [0, 1, -1]) xs.push(at.x - m.w / 2 + s * (m.w * 0.5 + 8));
+      for (const r of placed) if (r.y < y + m.h && r.y + r.h > y) xs.push(r.x + r.w + 4, r.x - m.w - 4);
+      for (const x of xs) {
+        slot.x = clamp(x, box.left, box.right - m.w);
+        slot.y = y;
+        end.x = clamp(at.x, slot.x + 12, slot.x + m.w - 12);
+        end.y = up ? y + m.h : y;
+        if (Math.abs(slot.x + m.w / 2 - at.x) < 1.3 * m.w && free(m)) return true;
+      }
+    }
+  }
+  for (let k = 0; k < 3; k++) {
+    for (const side of [outer, -outer]) {
+      slot.x = side > 0 ? rim.right + 12 + k * (m.w + 8) : rim.left - 12 - m.w - k * (m.w + 8);
+      end.x = side > 0 ? slot.x : slot.x + m.w;
+      for (const dy of [0, -m.h - 8, m.h + 8, -2 * (m.h + 8), 2 * (m.h + 8)]) {
+        slot.y = clamp(at.y - m.h / 2 + dy, box.top, box.bottom - m.h);
+        end.y = slot.y + m.h / 2;
+        if (free(m)) return true;
+      }
+    }
+  }
+  for (const dy of [0, -m.h - 6, m.h + 6]) if (beside(m, -outer, 26, dy)) return true;
+  return false;
+}
+// a tab at the first free place by its thing (tabAt), its hairline out to it, or left out
+function placeTab(m, core, on) {
+  if (!m.w) { m.w = m.el.offsetWidth; m.h = m.el.offsetHeight; }
+  sky.screenOfPoint(m.pos, at);
+  const shown = on > 0.02 && at.visible && tabAt(m, core);
+  if (shown) {
+    placed.push({ x: slot.x - 3, y: slot.y - 3, w: m.w + 6, h: m.h + 6 });
+    const dx = end.x - at.x, dy = end.y - at.y, l = Math.hypot(dx, dy) || 1;
+    m.line.setAttribute('x1', (at.x + (dx / l) * 6).toFixed(1));
+    m.line.setAttribute('y1', (at.y + (dy / l) * 6).toFixed(1));
+    m.line.setAttribute('x2', end.x.toFixed(1));
+    m.line.setAttribute('y2', end.y.toFixed(1));
+    m.el.style.transform = `translate(${slot.x.toFixed(1)}px, ${slot.y.toFixed(1)}px)`;
+  }
+  m.el.style.opacity = shown ? on.toFixed(2) : '0';
+  m.el.style.visibility = shown ? 'visible' : 'hidden';
+  m.line.style.opacity = shown ? (0.7 * on).toFixed(2) : '0';
+}
+// a label at the first of its places that is free (a year tries a few by its arm's tip), or left out
+function placeLabel(m, far) {
+  const o = mode === 'hole' ? 0 : m.far * far + m.near * (1 - far);
+  if (!m.w) { m.w = m.el.offsetWidth; m.h = m.el.offsetHeight; }
+  for (const p of m.alts || [m.pos]) { sky.screenOfPoint(p, at); if (!covers(at.x - m.w / 2, at.y - m.h / 2, m.w, m.h)) break; }
+  const x = at.x - m.w / 2, y = at.y - m.h / 2;
+  const shown = o > 0.02 && at.visible && x >= box.left && x + m.w <= box.right && y >= box.top && y + m.h <= lay.dock - 8 && !covers(x, y, m.w, m.h);
+  if (shown) placed.push({ x: x - 4, y: y - 2, w: m.w + 8, h: m.h + 4 });
+  m.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+  m.el.style.opacity = shown ? o.toFixed(2) : '0';
+}
+function placeMarks() {
+  const far = ease(0.42, 0.62, sky.zoom()), core = sky.screenOfPoint(ORIGIN, hole), tabsOn = mode === 'whole' && !document.body.classList.contains('opening') ? far : 0;
+  box.left = stacked() || short() ? 6 : lay.col + 6;
+  box.right = innerWidth - 6;
+  box.top = (stacked() ? lay.say : short() ? lay.nav : 0) + 8;
+  box.bottom = lay.dock - 30;
+  if (tabsOn > 0.02) layGlow();
+  placed.length = 0;
+  for (const r of words) placed.push(r);
+  if ($('chips').inert !== tabsOn < 0.5) $('chips').inert = tabsOn < 0.5;
+  // the newest week's tab first (it has the first pick of places), then the years (small, and they say which arm is
+  // which), then the other tabs
+  placeTab(tabs[0], core, tabsOn);
+  for (const m of labels) placeLabel(m, far);
+  for (let k = 1; k < tabs.length; k++) placeTab(tabs[k], core, tabsOn);
+  for (const tr of traces) {
+    let d = '';
+    for (const p of tr.pts) { sky.screenOfPoint(p, at); d += `${d ? 'L' : 'M'}${at.x.toFixed(1)},${at.y.toFixed(1)}`; }
+    tr.path.setAttribute('d', d);
+    tr.path.style.opacity = mode === 'whole' ? (0.8 * far).toFixed(2) : '0';
+  }
+  sky.screenOf(newest.i, ring);
+  nowRing.setAttribute('cx', ring.x.toFixed(1));
+  nowRing.setAttribute('cy', ring.y.toFixed(1));
+  nowRing.setAttribute('r', (ring.r + 6).toFixed(1));
+  nowRing.style.opacity = ring.visible && mode === 'whole' ? (0.6 * far).toFixed(2) : '0';
+}
+// the picked week's planet as big as its room allows (up to 196 px across; galaxy.js draws it and its neighbours'
+// smaller planets, each in its own small system, in WebGL)
+function sizes() {
+  const room = stacked() ? lay.dock - 8 - lay.room - lay.nav : lay.dock - lay.nav, big = clamp(Math.min(0.42 * (innerWidth - lay.col), 0.62 * room), 100, 196);
+  return [big, 0.37 * big, 0.3 * big, 0.25 * big];
+}
+// the week a tap or the pointer is over: a planet laid over the galaxy first (the picked one before its neighbours,
+// three either side), else the nearest star or phenomenon
+function planetAt(x, y) {
+  let best = -1;
+  if (sel < 0) return best;
+  for (let i = Math.max(0, sel - 3); i <= Math.min(n - 1, sel + 3); i++) {
+    sky.planetOf(i, pp);
+    if (pp.visible && Math.hypot(x - pp.x, y - pp.y) < pp.r && (best < 0 || Math.abs(i - sel) < Math.abs(best - sel))) best = i;
+  }
+  return best;
+}
+const weekAt = (x, y, radius) => { const p = planetAt(x, y); return p >= 0 ? p : (sky.pickAt(x, y, radius)[0] ?? -1); };
+let peeking = -1;
+function peekAt(i) {
+  if (i === peeking) return;
+  peeking = i;
+  sky.hover(i);
+  $('sky').classList.toggle('pointing', i >= 0);
+  $('peek').hidden = i < 0 || i === sel;
+  if (i >= 0) $('peek').innerHTML = `<b></b> · ${monthOf(W[i].week)}`;
+  if (i >= 0) $('peek').querySelector('b').textContent = W[i].title || 'A week';
+}
+function place() {
+  placeMarks();
+  placeTip();
+  if (peeking >= 0 && !$('peek').hidden) { sky.screenOf(peeking, pp); $('peek').style.transform = `translate(${(pp.x + 12).toFixed(1)}px, ${(pp.y - 40).toFixed(1)}px)`; }
+  if (sky.moved() !== away) {
+    away = !away;
+    document.body.classList.toggle('moved', away);
+  }
+}
+
+// ---------------------------------------------------------------- tapping, pointing, the keys
+// A tap is the one pointer that may yet be one (the first finger down, or the mouse's main button) lifted near
+// where it went down; a second finger (a pinch), a drag or a cancel rules it out. A tap on a week flies to it; a
+// click on the picked week (its painting) lands on it. A second tap soon after the first and close to it zooms in
+// there instead (toward the week the first one landed on, if it did); on touch the first tap waits out that window.
+let tap = null, lastTap = null, pending = 0;
+const radius = (e) => (e.pointerType === 'mouse' ? 16 : 26);
+canvas.addEventListener('pointerdown', (e) => { tap = e !== skipping && e.isPrimary && e.button === 0 ? { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() } : null; });
+canvas.addEventListener('pointercancel', () => { tap = null; });
+canvas.addEventListener('pointermove', (e) => {
+  if (tap?.id === e.pointerId && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 7) tap = null;
+  if (e.pointerType !== 'mouse' || e.buttons || document.body.classList.contains('opening')) return;
+  peekAt(weekAt(e.offsetX, e.offsetY, radius(e)));
+});
+canvas.addEventListener('pointerleave', () => peekAt(-1));
+canvas.addEventListener('pointerup', (e) => {
+  const was = tap;
+  tap = null;
+  if (was?.id !== e.pointerId || Math.hypot(e.clientX - was.x, e.clientY - was.y) > 7 || performance.now() - was.t > 600) return;
+  const now = performance.now(), twice = lastTap && now - lastTap.t < 330 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30;
+  const first = lastTap, i = weekAt(e.offsetX, e.offsetY, radius(e));
+  lastTap = twice ? null : { t: now, x: e.clientX, y: e.clientY, i };
+  if (twice) {
+    clearTimeout(pending);
+    const s = first.i >= 0 ? sky.screenOf(first.i, pp) : null;
+    sky.zoomAt(s?.visible ? s.x : e.offsetX, s?.visible ? s.y : e.offsetY, 2.4);
+    return;
+  }
+  if (i < 0) return;
+  if (e.pointerType === 'mouse') {
+    if (i === sel && planetAt(e.offsetX, e.offsetY) === i) dive.land(i);
+    else { peekAt(-1); select(i, 'star'); }
+  } else pending = setTimeout(() => select(i, 'star'), 330);
+});
+// a wheel over the card or the key still zooms the galaxy, so it never stalls under the pointer
+for (const el of [card, $('peek')]) el.addEventListener('wheel', sky.wheel, { passive: false });
+// zoom by the keys toward the picked week (if it is in view), or the middle of the picture
+function zoomKey(factor) {
+  const s = sel >= 0 ? sky.screenOf(sel, pp) : null;
+  if (s?.visible) sky.zoomAt(s.x, s.y, factor);
+  else sky.zoomAt(null, null, factor);
+}
+addEventListener('keydown', (e) => {
+  if (dive.up()) { // the planet has the screen: Escape goes back up, nothing else here is the galaxy's
+    if (e.key === 'Escape') dive.leave();
+    return;
+  }
+  if (e === skipping || e.target.closest?.('input, textarea, select')) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    e.preventDefault();
+    step(e.key === 'ArrowRight' ? 1 : -1);
+  } else if (e.key === 'Enter' && sel >= 0 && e.target === canvas) dive.land(sel);
+  else if (e.key === 'Escape') { if ($('key').classList.contains('open')) closeKey(); else if (mode !== 'whole') whole(); }
+  else if (e.key === '+' || e.key === '=') zoomKey(1.6);
+  else if (e.key === '-' || e.key === '_') zoomKey(1 / 1.6);
+  else if (e.key === 'Home' || e.key === '0') { e.preventDefault(); whole(); }
+});
+
+// the key: always out on a wide screen's whole-galaxy view, behind a word on a phone and once a week is picked
+const openers = [$('key-open'), $('card-key')];
+function closeKey() { $('key').classList.remove('open'); for (const b of openers) b.setAttribute('aria-expanded', 'false'); }
+for (const b of openers) b.addEventListener('click', () => { $('key').classList.add('open'); for (const o of openers) o.setAttribute('aria-expanded', 'true'); $('key-close').focus(); });
+$('key-close').addEventListener('click', closeKey);
+$('skip').addEventListener('click', () => { sky.skipOpening(); canvas.focus({ preventScroll: true }); });
+// the opening, only when asked for: the week let go, the words held back until it reveals the galaxy
+if (still) $('play').remove();
+else $('play').addEventListener('click', () => {
+  canvas.focus({ preventScroll: true });
+  unpick();
+  setMode('whole');
+  document.body.classList.add('opening');
+  for (const el of heldBack) el.inert = true;
+  sky.playOpening();
+});
+
+// ---------------------------------------------------------------- the dive
+// Zoomed in on a picked week (the galaxy's rail), the week's own planet takes the screen and the zoom on down to its
+// ground, and back up (galaxy-dive.js); 'Land on it', Enter and a click on the picked planet fly the same way. While
+// the planet has the screen the galaxy's own words are inert. A #week=YYYY-MM-DD link (the planet's own page, zoomed
+// out past its farthest, comes here so) opens on that week's system.
+const below = document.querySelectorAll('.top, .say, .card, .dock, .chips, .key, .sky');
+dive = createDive({
+  sky, layer: $('dive'), status: $('dive-status'), planetPx: () => sizes()[0],
+  // the classic shot: the planet framed where and as large as the galaxy drew its globe, so the hand-over does not jump
+  src: (i) => `../planet/ink.html?embed=1&p.poster.shot=classic${provenance(W[i])}#p=${codeOf(W[i].link)}`, title: (i) => W[i].title || 'A week',
+  onChange: (s) => {
+    document.body.dataset.dive = s;
+    for (const el of below) el.inert = s === 'entering' || s === 'planet';
+    if (s === 'galaxy' && (document.activeElement === document.body || $('dive').contains(document.activeElement))) canvas.focus({ preventScroll: true });
+    if (s === 'entering' && tipOn && performance.now() - zoomedAt < 1500) { // the zoom has been used: the tip is not said again
+      tipOn = false;
+      try { localStorage.setItem(TIP, '1'); } catch {}
+    }
+  },
+  onBack: (i) => select(i, 'back'),
+});
+document.body.dataset.dive = 'galaxy';
+$('dive-back').addEventListener('click', () => dive.leave());
+$('card-land').addEventListener('click', (e) => {
+  if (sel < 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // a new tab: the planet on its own page
+  e.preventDefault();
+  dive.land(sel);
+});
+{
+  const at = W.findIndex((w) => w.week === new URLSearchParams(location.hash.slice(1)).get('week'));
+  if (at >= 0) {
+    sky.atDive(at, sizes()[0]); // the week's planet the size its system shows it, then the guide glides it to its place
+    select(at, 'link');
+  }
+}
+
+// the bench drives it: view(), frame(t), a week picked, the whole galaxy, the hole, the dive, and reads the page's layout
+Object.assign(window, { __galaxy: sky, __galaxyWeeks: W, __galaxySelect: select, __galaxyWhole: whole, __galaxyHole: toHole, __galaxyLayout: lay, __dive: dive, __galaxyReady: true });
+</script>
+</body>
+</html>

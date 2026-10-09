@@ -1,0 +1,10 @@
+# Planet Creator's media and binaries (the pinned shots, and whatever the app adds) live in Git LFS.
+apps/planet/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+apps/planet/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+apps/planet/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
+apps/planet/**/*.png filter=lfs diff=lfs merge=lfs -text
+apps/planet/**/*.webp filter=lfs diff=lfs merge=lfs -text
+apps/planet/**/*.bin filter=lfs diff=lfs merge=lfs -text
+apps/planet/**/*.woff2 filter=lfs diff=lfs merge=lfs -text
+apps/planet/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
+apps/planet/**/*.glb filter=lfs diff=lfs merge=lfs -text

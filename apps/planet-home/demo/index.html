@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The film · Planet Creator</title>
+<meta name="description" content="A short film about Planet Creator: how a week of training turns into a planet, and a tour of Ryan's 83 weeks.">
+<meta property="og:type" content="video.other">
+<meta property="og:title" content="Planet Creator, the film">
+<meta property="og:description" content="How a week of training turns into a planet you can land on, and a tour of Ryan's 83 weeks.">
+<meta property="og:url" content="https://planet.fleming.run/demo/">
+<meta property="og:image" content="https://planet.fleming.run/demo/media/demo-og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:video" content="https://planet.fleming.run/demo/media/demo-wide-720.mp4">
+<meta property="og:video:secure_url" content="https://planet.fleming.run/demo/media/demo-wide-720.mp4">
+<meta property="og:video:type" content="video/mp4">
+<meta property="og:video:width" content="1280">
+<meta property="og:video:height" content="720">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://planet.fleming.run/demo/media/demo-og.jpg">
+<meta name="theme-color" content="#0a0d20">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23efe6d2' stroke='%231b2540' stroke-width='1.5'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="/kit/icon-192.png">
+<link rel="canonical" href="https://planet.fleming.run/demo/">
+<link rel="stylesheet" href="../lib/space.css">
+<link rel="stylesheet" href="../lib/ink.css">
+<style>
+  /* The film (media/, made by var/private/planet-demo/round12/site-media.sh), then ways to post it. A phone gets the
+     vertical short cut first and the wide cut under it, both with their captions burned in. Nothing loads until play is pressed. */
+  .intro { display: grid; gap: 16px; max-width: 900px; padding: 38px var(--edge) 4px; }
+  .intro .title { font-size: clamp(36px, 4.4vw, 64px); }
+  .films { display: grid; gap: 30px; justify-items: start; padding: 26px var(--edge) 0; }
+  .film { display: grid; gap: 10px; width: 100%; margin: 0; }
+  .film video { display: block; width: 100%; height: auto; background: var(--night-lift); }
+  .film.wide { max-width: min(1280px, max(60vw, (100svh - 300px) * 16 / 9)); } /* the whole player above a laptop's fold */
+  .film.wide video { aspect-ratio: 16 / 9; }
+  .film.tall { display: none; }
+  .share { display: grid; gap: 16px; justify-items: start; max-width: 900px; padding: 64px var(--edge) 0; }
+  .share .post { max-width: 46ch; padding-left: 14px; border-left: 2px solid var(--line-faint); font-style: italic; }
+  .share .acts { display: flex; flex-wrap: wrap; gap: 12px 14px; }
+  .share .ways { display: flex; flex-wrap: wrap; gap: 8px 26px; align-items: baseline; }
+  .status { min-height: 1.5em; font-style: italic; font-size: 15.5px; color: var(--fg-soft); }
+  @media (max-width: 700px) {
+    .films { padding-inline: 0; }
+    .film figcaption { padding-inline: var(--edge); }
+    .film.tall { display: grid; order: -1; }
+    .film.tall video { aspect-ratio: 9 / 16; width: auto; max-width: 100%; max-height: 84svh; margin: 0 auto; }
+    .share .btn { flex: 1 1 100%; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute"><filter id="pc-ink" x="-4%" y="-15%" width="108%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="4" result="fibre"/><feDisplacementMap in="SourceGraphic" in2="fibre" scale="1.2" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
+
+<nav class="top" aria-label="Planet Creator">
+  <a class="brand" href="../">Planet Creator</a>
+  <ul class="trail">
+    <li><a class="word" href="../galaxy/">Galaxy</a></li>
+    <li><a class="word" href="../shelf/?ryan">Ryan's shelf</a></li>
+    <li><a class="word" href="../make/">Make yours</a></li>
+    <li><a class="word" href="../how/">How it works</a></li>
+  </ul>
+</nav>
+
+<main>
+  <header class="intro">
+    <h1 class="title">Planet Creator, the film</h1>
+    <p class="lede">How a week of training turns into a planet, then a tour of Ryan's 83 weeks. It has a voice, so turn the sound on.</p>
+  </header>
+
+  <div class="films">
+    <figure class="film wide">
+      <video controls playsinline preload="none" poster="media/demo-wide.webp" width="1280" height="720" aria-label="Planet Creator, the film">
+        <source src="media/demo-wide-720.mp4" type="video/mp4">
+        <track kind="captions" srclang="en" label="English" src="media/demo-wide.vtt">
+      </video>
+      <figcaption class="aside">The full film, with captions.</figcaption>
+    </figure>
+    <figure class="film tall">
+      <video controls playsinline preload="none" poster="media/demo-vertical.webp" width="720" height="1280" aria-label="Planet Creator, the short cut">
+        <source src="media/demo-vertical-720.mp4" type="video/mp4">
+        <track kind="captions" srclang="en" label="English" src="media/demo-vertical.vtt">
+      </video>
+      <figcaption class="aside">The short cut. The full film is under it.</figcaption>
+    </figure>
+  </div>
+
+  <section class="share" aria-labelledby="share-title">
+    <h2 class="h2" id="share-title">Share the film</h2>
+    <p class="lede">On a phone, Share puts the film itself in your post, so it plays in the feed. These words get copied too, ready to paste:</p>
+    <p class="post" id="post">Planet Creator turns a week of training into a planet you can land on. It runs in your browser, and nothing gets uploaded.</p>
+    <div class="acts">
+      <button class="btn" type="button" data-share="media/planet-creator-vertical-1080.mp4" hidden>Share the short cut</button>
+      <button class="btn quiet" type="button" data-share="media/planet-creator-wide-1080.mp4" hidden>Share the full film</button>
+    </div>
+    <div class="ways">
+      <a class="word" href="https://x.com/intent/post?text=Planet%20Creator%20turns%20a%20week%20of%20training%20into%20a%20planet%20you%20can%20land%20on.%20It%20runs%20in%20your%20browser%2C%20and%20nothing%20gets%20uploaded.&amp;url=https%3A%2F%2Fplanet.fleming.run%2Fdemo%2F" target="_blank" rel="noopener">Post on X</a>
+      <a class="word" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fplanet.fleming.run%2Fdemo%2F" target="_blank" rel="noopener">Share on Facebook</a>
+      <button class="word" type="button" id="copy">Copy link</button>
+      <a class="word" href="media/planet-creator-wide-1080.mp4" download>Download the full film</a>
+      <a class="word" href="media/planet-creator-vertical-1080.mp4" download>Download the short cut</a>
+    </div>
+    <p class="status" id="status" role="status"></p>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>Made by <a href="https://fleming.run/">Ryan Fleming</a>. The first planet was his marathon week.</span>
+  <span class="links"><a href="../shelf/">Your shelf</a><a href="../privacy/">Privacy</a><a href="../terms/">Terms</a><a href="https://github.com/rlfleming93/planetCreator">Source on GitHub</a></span>
+</footer>
+
+<script type="module">
+// Share hands the 1080 file itself to the phone's sheet (X, Facebook, Instagram, TikTok), the post's words copied
+// beside it. The file comes down on the first tap; if that tap has gone stale by then (a phone only lets a page open
+// the sheet for a few seconds after one), the button asks for a second.
+import { copyText, shareFiles } from '../lib/story.js';
+
+const PAGE = 'https://planet.fleming.run/demo/';
+const POST = document.getElementById('post').textContent.trim();
+const status = document.getElementById('status');
+const say = (text) => { status.textContent = text; };
+const files = new Map();
+const takesFiles = navigator.canShare?.({ files: [new File([''], 'film.mp4', { type: 'video/mp4' })] });
+
+async function download(src) {
+  const res = await fetch(src);
+  if (!res.ok || !res.body) throw new Error(`${res.status}`);
+  const total = Number(res.headers.get('content-length')) || 0, reader = res.body.getReader(), parts = [];
+  for (let got = 0; ;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parts.push(value);
+    got += value.length;
+    if (total) say(`Getting the film, ${Math.round((100 * got) / total)}%`);
+  }
+  return new File(parts, src.split('/').pop(), { type: 'video/mp4' });
+}
+
+for (const button of document.querySelectorAll('[data-share]')) {
+  button.hidden = !takesFiles;
+  button.addEventListener('click', async () => {
+    const src = button.dataset.share;
+    if (!files.has(src)) {
+      button.disabled = true;
+      say('Getting the film');
+      try { files.set(src, await download(src)); }
+      catch { say("The film didn't come through. Try again, or use the download link."); return; }
+      finally { button.disabled = false; }
+      if (!navigator.userActivation?.isActive) { say('Ready. Tap it again to share.'); return; }
+    }
+    const how = await shareFiles({ files: [files.get(src)], text: POST, url: PAGE });
+    say(how === 'shared' ? 'Shared. The words are copied, so paste them in.' : how === 'downloaded' ? 'Saved. The words are copied too.' : '');
+  });
+}
+
+document.getElementById('copy').addEventListener('click', async () => say((await copyText(PAGE)) ? 'Link copied.' : PAGE));
+</script>
+</body>
+</html>

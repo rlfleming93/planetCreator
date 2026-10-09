@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it works · Planet Creator</title>
+<meta name="description" content="How a week of training turns into a planet, in short clips: runs raise ridges, climbing makes mountains, sweat fills the sea, and the week's hours pick what kind of world it is.">
+<meta property="og:image" content="https://planet.fleming.run/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="628">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a0d20">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23efe6d2' stroke='%231b2540' stroke-width='1.5'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="/kit/icon-192.png">
+<link rel="canonical" href="https://planet.fleming.run/how/">
+<link rel="preload" as="image" href="media/week.webp" fetchpriority="high">
+<link rel="stylesheet" href="../lib/space.css">
+<link rel="stylesheet" href="../lib/ink.css">
+<style>
+  /* Each idea is a short clip of the real app (rendered offline, var/private/how-render) beside its words: the clip
+     belongs to its words, so nothing can fall out of step. Posters show first; a clip loads as it comes near and
+     plays while it is on screen. */
+  .intro { display: grid; gap: 16px; max-width: 900px; padding: 38px var(--edge) 4px; }
+  .intro .title { font-size: clamp(36px, 4.4vw, 64px); }
+  .chapters { margin: 0; padding: 0 var(--edge); list-style: none; }
+  .chapter { display: grid; grid-template-columns: minmax(0, 1fr) min(46vw, 600px); gap: 0 5vw; align-items: center; padding: 8vh 0; }
+  .chapter .words { display: grid; gap: 12px; align-content: center; }
+  .chapter .num { position: relative; justify-self: start; font-style: italic; font-size: 15px; color: var(--mark); }
+  .chapter .num::after { content: ""; position: absolute; left: -7px; right: -9px; bottom: -4px; height: 5px; background: currentColor; opacity: .85; -webkit-mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; mask: var(--ink-stroke) 0 0 / 100% 100% no-repeat; }
+  .chapter .h2 { font-size: clamp(30px, 3.2vw, 44px); }
+  .chapter .lede { max-width: 34em; }
+  .chapter .more { font-size: 15.5px; }
+  /* the clip: a square of the app's own night, feathered into the page's */
+  .clip { position: relative; margin: 0; aspect-ratio: 1; background: var(--night-lift);
+    -webkit-mask: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent), linear-gradient(transparent, #000 3%, #000 97%, transparent);
+    -webkit-mask-composite: source-in; mask: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent), linear-gradient(transparent, #000 3%, #000 97%, transparent);
+    mask-composite: intersect; }
+  .clip video { display: block; width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+  .end { display: grid; gap: 14px; justify-items: start; padding: 20px var(--edge) 0; max-width: 900px; }
+  .end .acts { display: flex; flex-wrap: wrap; gap: 8px 26px; align-items: baseline; }
+  @media (max-width: 900px) {
+    .chapter { grid-template-columns: minmax(0, 1fr); padding: 26px 0 30px; }
+    .chapter .clip { order: -1; margin: 0 calc(-1 * var(--edge)) 18px; } /* edge to edge on a phone */
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute"><filter id="pc-ink" x="-4%" y="-15%" width="108%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="4" result="fibre"/><feDisplacementMap in="SourceGraphic" in2="fibre" scale="1.2" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
+
+<nav class="top" aria-label="Planet Creator">
+  <a class="brand" href="../">Planet Creator</a>
+  <ul class="trail">
+    <li><a class="word" href="../galaxy/">Galaxy</a></li>
+    <li><a class="word" href="../shelf/?ryan">Ryan's shelf</a></li>
+    <li><a class="word" href="../make/">Make yours</a></li>
+    <li><a class="word" href="./" aria-current="page">How it works</a></li>
+  </ul>
+</nav>
+
+<main>
+  <header class="intro">
+    <h1 class="title">How a week turns into a planet</h1>
+    <p class="lede">Every session you record becomes a place on the planet. The week as a whole sets its sea, its sky and what kind of world it is. Each clip below is the app itself with a few labels on top.</p>
+  </header>
+
+  <ol class="chapters">
+    <li class="chapter" id="week">
+      <figure class="clip"><video muted playsinline loop preload="none" poster="media/week.webp" aria-label="A made-up week of seven sessions, each lighting up as its place on the planet turns into view.">
+        <source src="media/week.webm" type='video/webm; codecs="av01.0.04M.08"'><source src="media/week.mp4" type='video/mp4; codecs="avc1.64001f"'></video></figure>
+      <div class="words">
+        <p class="num">1</p>
+        <h2 class="h2">Every session becomes a place</h2>
+        <p class="lede">Each day gets its own slice of the planet, Monday to Sunday around the middle. Runs raise ridges and rides carve valleys. A swim digs a lagoon. Lifting stands up rock spires, one per set, and yoga plants a grove. A run with no route gets built from its effort instead: intervals step up a hill in terraces.</p>
+      </div>
+    </li>
+    <li class="chapter" id="ridge">
+      <figure class="clip"><video muted playsinline loop preload="none" data-poster="media/ridge.webp" aria-label="Saturday's route is drawn on a card, laid onto the planet, and a ridge comes up along it.">
+        <source src="media/ridge.webm" type='video/webm; codecs="av01.0.04M.08"'><source src="media/ridge.mp4" type='video/mp4; codecs="avc1.64001f"'></video></figure>
+      <div class="words">
+        <p class="num">2</p>
+        <h2 class="h2">A run raises a ridge</h2>
+        <p class="lede">The route you ran becomes the line of the ridge, and a longer run draws a longer one. Here Saturday's 13.1 mile run lands on the planet and the ridge comes up under it.</p>
+      </div>
+    </li>
+    <li class="chapter" id="climb">
+      <figure class="clip"><video muted playsinline loop preload="none" data-poster="media/climb.webp" aria-label="Standing on the ridge as its climbing goes from 200 to 2,000 feet: a soft hill turns into a rock peak.">
+        <source src="media/climb.webm" type='video/webm; codecs="av01.0.04M.08"'><source src="media/climb.mp4" type='video/mp4; codecs="avc1.64001f"'></video></figure>
+      <div class="words">
+        <p class="num">3</p>
+        <h2 class="h2">Climbing makes it taller</h2>
+        <p class="lede">Same ridge, standing on top of it. With 200 feet of climbing it's a soft hill with trees on it. With 2,000 feet it's a bare rock peak.</p>
+      </div>
+    </li>
+    <li class="chapter" id="sea">
+      <figure class="clip"><video muted playsinline loop preload="none" data-poster="media/sea.webp" aria-label="The same planet at 2.2, 4.3 and 8.6 liters of sweat, its sea rising each time.">
+        <source src="media/sea.webm" type='video/webm; codecs="av01.0.04M.08"'><source src="media/sea.mp4" type='video/mp4; codecs="avc1.64001f"'></video></figure>
+      <div class="words">
+        <p class="num">4</p>
+        <h2 class="h2">Sweat fills the sea</h2>
+        <p class="lede">The sea is the week's sweat. This is the same week at 2.2, 4.3 and 8.6 liters, and the water comes up to meet it. The clouds get bigger too.</p>
+      </div>
+    </li>
+    <li class="chapter" id="bodies">
+      <figure class="clip"><video muted playsinline loop preload="none" data-poster="media/bodies.webp" aria-label="Six of Ryan's weeks: a marble, a rocky planet, a gas giant, an ice giant, a lava world and a crowned world, each with its rule.">
+        <source src="media/bodies.webm" type='video/webm; codecs="av01.0.04M.08"'><source src="media/bodies.mp4" type='video/mp4; codecs="avc1.64001f"'></video></figure>
+      <div class="words">
+        <p class="num">5</p>
+        <h2 class="h2">Hours and effort pick the body</h2>
+        <p class="lede">Most weeks come out as rocky planets. A small week, under 3½ hours, shrinks to a marble. Around 10 hours and up it swells into a gas giant. A long week spent indoors or in the cold becomes an ice giant. A hard week in the heat stays molten as a lava world. These are six of Ryan's weeks.</p>
+      </div>
+    </li>
+    <li class="chapter" id="star">
+      <figure class="clip"><video muted playsinline loop preload="none" data-poster="media/star.webp" aria-label="The marathon week drawn as a plain rocky planet, its 6.7 hours and the marathon counted up, then an aurora crown lights over it.">
+        <source src="media/star.webm" type='video/webm; codecs="av01.0.04M.08"'><source src="media/star.mp4" type='video/mp4; codecs="avc1.64001f"'></video></figure>
+      <div class="words">
+        <p class="num">6</p>
+        <h2 class="h2">Why Ryan's marathon week wears a crown</h2>
+        <p class="lede">Ryan's marathon week came to 6.7 hours, with the marathon in it. A race week of 6 hours or more wears an aurora crown. The clip draws it as a plain rocky planet first, then the way the app picks it. His half marathon week was 5.6 hours, so it has no crown.</p>
+      </div>
+    </li>
+    <li class="chapter" id="ring">
+      <figure class="clip"><video muted playsinline loop preload="none" data-poster="media/ring.webp" aria-label="Ryan's half marathon week with its ring, labeled: the race's splits, halfway and the finish.">
+        <source src="media/ring.webm" type='video/webm; codecs="av01.0.04M.08"'><source src="media/ring.mp4" type='video/mp4; codecs="avc1.64001f"'></video></figure>
+      <div class="words">
+        <p class="num">7</p>
+        <h2 class="h2">A race puts a ring round it</h2>
+        <p class="lede">A race gets a ring. Its bands follow the race kilometer by kilometer: its real splits where the watch kept them, the climbs of its course where it didn't. The wide gap is halfway, and the thin red line just outside is the finish. On the ground the course is painted red, with a monument where you finished. This is Ryan's half marathon week.</p>
+      </div>
+    </li>
+    <li class="chapter" id="sky">
+      <figure class="clip"><video muted playsinline loop preload="none" data-poster="media/sky.webp" aria-label="One of Ryan's weeks with its sky labeled: the week's sun, a second sun, a comet and a belt of rocks.">
+        <source src="media/sky.webm" type='video/webm; codecs="av01.0.04M.08"'><source src="media/sky.mp4" type='video/mp4; codecs="avc1.64001f"'></video></figure>
+      <div class="words">
+        <p class="num">8</p>
+        <h2 class="h2">The sky is the week's too</h2>
+        <p class="lede">The sun takes its color from the hour you trained at. This week averaged 11 in the morning, so it's a pale yellow. Days with two sessions add a second sun. The longest run flies past as a comet, and lifting leaves a belt of rocks.</p>
+      </div>
+    </li>
+    <li class="chapter" id="life">
+      <figure class="clip"><video muted playsinline loop preload="none" data-poster="media/life.webp" aria-label="On foot on the made-up week: pines round a ring of stones where it did yoga, then a herd grazing by Sunday's run.">
+        <source src="media/life.webm" type='video/webm; codecs="av01.0.04M.08"'><source src="media/life.mp4" type='video/mp4; codecs="avc1.64001f"'></video></figure>
+      <div class="words">
+        <p class="num">9</p>
+        <h2 class="h2">And things live there</h2>
+        <p class="lede">Land on it and the week has life. Yoga grows woods round a ring of stones, and herds graze by the runs. Lava worlds and marbles stay bare.</p>
+      </div>
+    </li>
+    <li class="chapter" id="galaxy">
+      <figure class="clip"><video muted playsinline loop preload="none" data-poster="media/galaxy.webp" aria-label="The galaxy of all of Ryan's weeks, drawn back from the black hole at its middle.">
+        <source src="media/galaxy.webm" type='video/webm; codecs="av01.0.04M.08"'><source src="media/galaxy.mp4" type='video/mp4; codecs="avc1.64001f"'></video></figure>
+      <div class="words">
+        <p class="num">10</p>
+        <h2 class="h2">Every week together is a galaxy</h2>
+        <p class="lede">Put all the weeks together and you get a galaxy. Every week is a star, bigger for more hours, and each arm is a year from January at the core. The black hole in the middle grows in long blocks of high load.</p>
+        <p class="more"><a class="word go" href="../galaxy/">See Ryan's galaxy</a></p>
+      </div>
+    </li>
+  </ol>
+</main>
+
+<section class="end" aria-labelledby="end-title">
+  <h2 class="h2" id="end-title">That's all of it</h2>
+  <p class="lede">Everything above happens in your browser, and so does yours.</p>
+  <div class="acts"><a class="btn" href="../make/">Bring your week</a><a href="../make/?sample=marathon">or try a sample week</a></div>
+</section>
+
+<footer class="foot">
+  <span>Made by <a href="https://fleming.run/">Ryan Fleming</a>. The first planet was his marathon week.</span>
+  <span class="links"><a href="../shelf/">Your shelf</a><a href="../privacy/">Privacy</a><a href="../terms/">Terms</a><a href="https://github.com/rlfleming93/planetCreator">Source on GitHub</a></span>
+</footer>
+
+<script type="module">
+// A clip's poster and file are asked for only as its chapter comes within a screen of view; it plays while most of
+// it is on screen and pauses off it. A tap pauses or plays it. With reduced motion asked for, nothing plays by itself.
+const still = matchMedia('(prefers-reduced-motion: reduce)');
+const clips = [...document.querySelectorAll('.clip video')];
+const near = new IntersectionObserver((entries) => {
+  for (const e of entries) {
+    if (!e.isIntersecting) continue;
+    const v = e.target;
+    if (v.dataset.poster) v.poster = v.dataset.poster;
+    v.preload = 'auto';
+    near.unobserve(v);
+  }
+}, { rootMargin: '100% 0px' });
+const seen = new IntersectionObserver((entries) => {
+  for (const e of entries) {
+    const v = e.target;
+    if (!e.isIntersecting) v.pause();
+    else if (!still.matches && !v.dataset.held) v.play().catch(() => {});
+  }
+}, { threshold: 0.6 });
+for (const v of clips) {
+  near.observe(v);
+  seen.observe(v);
+  v.addEventListener('click', () => {
+    if (v.paused) { delete v.dataset.held; v.play().catch(() => {}); }
+    else { v.dataset.held = '1'; v.pause(); }
+  });
+}
+</script>
+</body>
+</html>

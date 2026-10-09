@@ -1,0 +1,9 @@
+# Planet Creator's hourly Junction sweep (index.js). Its one secret, JUNCTION_API_KEY, goes in with
+# scripts/junction-secrets.sh. No public URL: it runs only on the schedule.
+name = "planetcreator-junction-sweep"
+main = "index.js"
+compatibility_date = "2026-06-01"
+workers_dev = false
+
+[triggers]
+crons = ["17 * * * *"]
